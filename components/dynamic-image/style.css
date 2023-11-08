@@ -1,0 +1,19 @@
+.dynamic-image-display{
+    overflow:hidden;
+    display:grid;
+    grid-auto-flow: column;
+    grid-template-rows: min-content auto;
+}
+.dynamic-image{
+    position:absolute;
+
+    --left:0px;
+    --top:0px;
+    --scale:1;
+
+    transform: translate( var(--left) , var(--top) ) scale( var(--scale) ) ;
+}
+.dynamic-image-container{
+    position:relative;
+    overflow:hidden;
+}
