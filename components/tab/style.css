@@ -9,10 +9,6 @@
     display: flex;
     overflow-x: auto;
     white-space: nowrap;
-
-    --tab-header-height: 1.7em;
-
-    height: var(--tab-header-height);
 }
 .tab-header{
     display:inline-block;
@@ -30,8 +26,6 @@
     border-radius:5px 5px 0 0;
     background-color:lightgray;
     cursor:pointer;
-
-    height: var(--tab-header-height);
 
     user-select: none;
 }

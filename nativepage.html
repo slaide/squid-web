@@ -28,8 +28,12 @@
             img{
                 image-rendering: pixelated;
             }
+            li{
+                margin-left:1.5em;
+            }
         </style>
         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="components/p/init.js"></script>
     </head>
     <body>
         <style>
@@ -64,957 +68,334 @@
             #main-content{
                 width:100vw;
                 height:100vh;
-                display:grid;
-                grid-template-columns: 6fr minmax(50vh, 4fr);
-                grid-gap: 0.2em;
                 overflow: hidden;
             }
-            #main-content-left{
-                height:100%;
-                overflow:hidden;
-            }
-            #main-content-right{
-                height:100%;
-                overflow:hidden;
-            }
         </style>
-        <div id="main-content">
-            <div id="main-content-left">
+        <div id="main-content" class="tab-container" >
+            <style>
+                #basic-setup-tab:not(.inactive){
+                    display:grid;
+                    grid-template-columns: auto auto;
+                }
+            </style>
+            <div class="tab-body" tab-name="basic setup" id="basic-setup-tab">
+                <label>camera trigger</label>
+                <script>
+                    p.init_camera_trigger_dropdown=function(element){
+                        const camera_triggers=[
+                            {
+                                'name':'Hardware',
+                                'handle':'hardware'
+                            },
+                            {
+                                'name':'Software',
+                                'handle':'software'
+                            }
+                        ]
+
+                        p.create_dropdown(element,camera_triggers)
+                    }
+                </script>
+                <select class="data" p:init="init_camera_trigger_dropdown"></select>
+
+                <label>pixel depth</label>
+                <script>
+                    p.init_pixel_depth_dropdown=function(element){
+                        const pixel_depths=[
+                            {
+                                'name':'8 Bit (Mono)',
+                                'handle':'mono8'
+                            },
+                            {
+                                'name':'12 Bit (Mono)',
+                                'handle':'mono12'
+                            }
+                        ]
+
+                        p.create_dropdown(element,pixel_depths)
+                    }
+                </script>
+                <select class="data" p:init="init_pixel_depth_dropdown"></select>
+
+                <label>base path</label>
+                <script>
+                    p.set_base_path=function(event){
+                        let event_target=event.target
+                        let value=event_target.value
+
+                        this.config.base_path=value
+                    }
+                </script>
+                <input type="text" placeholder="Please enter the Base Path" class="data" p:on-input="set_base_path"/>
+
+                <label>project name</label>
+                <script>
+                    p.set_project_name=function(event){
+                        let event_target=event.target
+                        let value=event_target.value
+
+                        this.config.project_name=value
+                    }
+                </script>
+                <input type="text" placeholder="Please enter the Project Name" class="data" p:on-input="set_project_name"/>
+                <label>plate name</label>
+                <script>
+                    p.set_plate_name=function(event){
+                        let event_target=event.target
+                        let value=event_target.value
+
+                        this.config.plate_name=value
+                    }
+                </script>
+                <input type="text" placeholder="Please enter the Plate Name" class="data" p:on-input="set_plate_name"/>
+                <label>cell line</label>
+                <script>
+                    p.set_cell_line=function(event){
+                        let event_target=event.target
+                        let value=event_target.value
+
+                        this.config.cell_line=value
+                    }
+                </script>
+                <input type="text" placeholder="Please enter the Cell Line" class="data" p:on-input="set_cell_line"/>
+
+                <label>image format</label>
+                <script>
+                    p.init_image_format_dropdown=function(element){
+                        const image_formats=[
+                            {
+                                'name':'TIFF',
+                                'handle':'tiff'
+                            },
+                            {
+                                'name':'TIFF (compressed)',
+                                'handle':'tiffcompressed'
+                            }
+                        ]
+                        p.create_dropdown(element,image_formats)
+                    }
+                </script>
+                <select class="data" p:init="init_image_format_dropdown"></select>
+
+                <label>plate type</label>
+                <script>
+                    p.init_plate_type_dropdown=function(element){
+                        const plate_types=[
+                            {
+                                'name':'Generic 96',
+                                'handle':'ge96',
+                                'well_count':96,
+                                'well_count_x':12,
+                                'well_count_y':8
+                            },
+                            {
+                                'name':'Generic 384',
+                                'handle':'ge384',
+                                'well_count':384,
+                                'well_count_x':24,
+                                'well_count_y':16
+                            }
+                        ]
+                        p.create_dropdown(element,plate_types)
+                    }
+                </script>
+                <select class="data" p:init="init_plate_type_dropdown"></select>
+
+                <label>objective</label>
+                <script>
+                    p.init_objective_dropdown=function(element){
+                        const objectives=[
+                            {
+                                'name':'4x (Olympus)',
+                                'handle':'olympus4x'
+                            },
+                            {
+                                'name':'10x (Olympus)',
+                                'handle':'olympus10x'
+                            },
+                            {
+                                'name':'20x (Olympus)',
+                                'handle':'olympus20x'
+                            }
+                        ]
+                        p.create_dropdown(element,objectives)
+                    }
+                </script>
+                <select class="data" p:init="init_objective_dropdown"></select>
+
+                <button>Load Settings</button>
+            </div>
+
+            <div class="tab-body" tab-name="well selection + grid" id="live-view-bodys">
                 <style>
-                    #image-view-container{
+                    #well-selection-container{
+                        background-color:red;
                         width:100%;
                         height:100%;
+                        display:grid;
+
+                        grid-template-columns: repeat(var(--num-columns), 1fr);
+                        grid-template-rows: repeat(var(--num-rows), 1fr);
                     }
                 </style>
-                <div class="tab-container" id="image-view-container">
-                    <div class="tab-body" tab-name="Live View" id="live-view-body">
-                        <style>
-                            #live-view-container{
-                                height: calc( 100% - 2px );
-                                border: 1px solid black;
-                            }
-                            #live-view-container > div{
-                                height:100%;
-                                width:100%;
-                            }
-                        </style>
-                        <div id="live-view-container">
-                            <div class="dynamic-image-display">
-                                <div>Channel: Squirrel , Well: Squirrel seems to be well indeed.</div>
-                            </div>
-                        </div>
-                    </div>
-                    <style>
-                        #channel-view-body{
-                            width:100%;
-                            height:100%;
-                        }
-                    </style>
-                    <div class="tab-body" tab-name="Channel View" id="channel-view-body">
-                        <style>
-                            #channel-view-container{
-                                height:100%;
-                                width:100%;
+                <script>
+                    p.init_well_selection=function(element){
+                        let container_width=element.clientWidth
+                        let container_height=element.clientHeight
 
-                                display:grid;
-                                grid-template-columns:1fr 1fr 1fr;
-                                grid-template-rows:1fr 1fr 1fr;
+                        let well_count_x=12
+                        let well_count_y=8
+
+                        element.style.setProperty("--num-columns",well_count_x)
+                        element.style.setProperty("--num-rows",well_count_y)
+
+                        let well_width=container_width/well_count_x
+                        let well_height=container_height/well_count_y
+
+                        let well_size=Math.min(well_width,well_height)
+
+                        for(let x=0;x<well_count_x;x++){
+                            for(let y=0;y<well_count_y;y++){
+                                let well=document.createElement("div")
+                                well.style.width=well_size+"px"
+                                well.style.height=well_size+"px"
+                                well.style.border="1px solid black"
+                                element.appendChild(well)
                             }
-                            #channel-view-container > div{
-                                border-left: 1px solid black;
-                                border-top: 1px solid black;
-                                padding: 0.2em;
+                        }
+                    }
+                </script>
+                <div id="well-selection-container" class="data" p:init-vis="init_well_selection"></div>
+            </div>
+
+            <style>
+                #channel-focus-setup:not(.inactive){
+                    display:grid;
+                    grid-template-columns: 1fr 2fr;
+                    height:100%;
+                    overflow:hidden;
+                }
+                #channel-container{
+                    display:grid;
+                    grid-template-columns: 1fr;
+                    grid-template-rows: repeat(100,min-content);
+
+                    overflow-y: scroll;
+                }
+            </style>
+            <div class="tab-body" tab-name="channel + focus setup" id="channel-focus-setup">
+                <script>
+                    p.add_channel_config_item=function(event){
+                        let channel_config_item_template=p.templates["channel_config_item"]
+                        let channel_config_item=channel_config_item_template.content.cloneNode(true)
+
+                        let channel_container=event.target.parentNode
+                        channel_container.insertBefore(channel_config_item,event.target)
+                    }
+                    p.init_lightsource_dropdown=function(element){
+                        const light_sources=[
+                            {
+                                'name':'Laser 405nm',
+                                'handle':'laser405nm'
+                            },
+                            {
+                                'name':'Laser 488nm',
+                                'handle':'laser488nm'
+                            },
+                            {
+                                'name':'Laser 730nm',
+                                'handle':'laser730nm'
                             }
-                            #channel-view-container :nth-child(3n){
-                                border-right: 1px solid black;
-                            }
-                            #channel-view-container :nth-child(3n-2){
-                                border-left: none;
-                            }
-                        </style>
-                        <div id="channel-view-container">
-                            <div class="dynamic-image-display">
-                                <div>405nm</div>
-                            </div>
-                            <div class="dynamic-image-display">
-                                <div>488nm</div>
-                            </div>
-                            <div class="dynamic-image-display">
-                                <div>561nm</div>
-                            </div>
-                            <div class="dynamic-image-display">
-                                <div>688nm</div>
-                            </div>
-                            <div class="dynamic-image-display">
-                                <div>730nm</div>
-                            </div>
-                            <div><!--intentionally blank for padding in the 3x3 grid--></div>
-                            <div class="dynamic-image-display">
-                                <div>Brightfield (full)</div>
-                            </div>
-                            <div class="dynamic-image-display">
-                                <div>Brightfield (left 50%)</div>
-                            </div>
-                            <div class="dynamic-image-display">
-                                <div>Brightfield (right 50%)</div>
-                            </div>
+                        ]
+                        p.create_dropdown(element,light_sources)
+                    }
+                </script>
+                <style>
+                    .channel-config-item{
+                        display:grid;
+                        grid-template-columns: 1fr 1fr;
+                        border-bottom: 1px solid black;
+                        padding-bottom: 0.5em;
+                        margin-bottom: 0.2em;
+                    }
+                    .channel-config-item-name{
+                        font-size: 1.5em;
+                        font-weight: bold;
+                        grid-column: 1 / span 2;
+                    }
+                    .channel-config-add-item-button{
+                        height:1.5em;
+                        font-size:1.3em;
+                        padding:0.5;
+                        margin:0.2em;
+                        margin-top: 1em;
+                        border:1px solid black;
+                    }
+                </style>
+                <div id="channel-container" class="data">
+                    <template name="channel_config_item">
+                        <div class="channel-config-item">
+                            <input class="channel-config-item-name" type="text" placeholder="Enter Channel Name"/>
+
+                            <label>Lightsource</label>
+                            <select class="data" p:init="init_lightsource_dropdown"></select>
+
+                            <label>Illumination (%)</label>
+                            <input type="number" min="0" max="100" step="0.1" value="100" wheel-adjust="false"/>
+                            <label>Exposure time (ms)</label>
+                            <input type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false"/>
+                            <label>Analog Gain</label>
+                            <input type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false"/>
+                            <label>Z-Offset? (um)</label>
+                            <input type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false"/>
+
+                            <button class="">whatever</button>
                         </div>
-                    </div>
+                    </template>
+                    <button class="data channel-config-add-item-button" p:on-click="add_channel_config_item">add a channel</button>
+                </div>
+                <div>
+                    channel setup goes here
+                    <ul>
+                        <li>live view</li>
+                        <li>contrast and brightness enhancers</li>
+                        <li>overlay to indicate saturated pixels?</li>
+                        <li>histogram</li>
+                        <li>focus measure?</li>
+                    </ul>
                 </div>
             </div>
-            <div id="main-content-right">
-                <style>
-                    #config-panel-container{
-                        width:100%;
-                        height:100%;
-                    }
-                    #config-panel-container > div.tab-body{
-                        height:auto;
-                        border:1px solid black;
-                        padding:0.3em;
-                    }
-                </style>
-                <div class="tab-container" id="config-panel-container">
-                    <style>
-                        #acqusition-panel:not(.inactive){
-                            display: grid;
-                            grid-template-columns: min-content auto min-content;
-                            grid-template-rows: repeat(100,min-content);
-                        }
-                        #acquisition-panel-lock-title{
-                            cursor: pointer;
-                            user-select: none;
-                        }
-                    </style>
-                    <div class="tab-body" tab-name="Acquisition" id="acqusition-panel">
-                        <div></div><div></div><div id="acquisition-panel-lock-title">&#x1F512;</div>
 
-                        <label>Camera Trigger Type</label>
-                        <select>
-                            <option>Software</option>
-                            <option>Hardware</option>
-                        </select>
-                        <input type="checkbox" name="lock-camera-trigger" value="lock-camera-trigger">
+            <div class="tab-body" tab-name="review" id="whatasdverasd">
+            </div>
 
-                        <label>Camera Bit Depth</label>
-                        <select>
-                            <option>8 Bit (Mono)</option>
-                            <option>12 Bit (Mono)</option>
-                        </select>
-                        <input type="checkbox" name="lock-camera-bit-depth" value="lock-camera-bit-depth">
-
-                        <label>Base Path</label>
-                        <input type="text" placeholder="Please provide the Base Path"/>
-                        <input type="checkbox" name="lock-base-path" value="lock-base-path">
-                        <label>Project Name</label>
-                        <input type="text" placeholder="Please enter the Project Name"/>
-                        <input type="checkbox" name="lock-project-name" value="lock-project-name">
-                        <label>Plate Name</label>
-                        <input type="text" placeholder="Please enter the Plate Name"/>
-                        <input type="checkbox" name="lock-plate-name" value="lock-plate-name">
-                        <label>Cell Line</label>
-                        <input type="text" placeholder="Please provide the Cell Line"/>
-                        <input type="checkbox" name="lock-cell-line" value="lock-cell-line">
-
-                        <label>Image Format</label>
-                        <select>
-                            <option>TIFF</option>
-                            <option>TIFF (compressed)</option>
-                        </select>
-                        <input type="checkbox" name="lock-image-format" value="lock-image-format">
-
-                        <label>Plate Type</label>
-                        <script>
-                            let plate_types=[
-                                {
-                                    name:'Generic 96',
-                                    num_rows:8,
-                                    num_columns:12,
-                                    id:"ge96"
-                                },
-                                {
-                                    name:'Falcon 96',
-                                    num_rows:8,
-                                    num_columns:12,
-                                    id:"fa-96"
-                                },
-                                {
-                                    name:'Perkin-Elmer 96',
-                                    num_rows:8,
-                                    num_columns:12,
-                                    id:"pe-96"
-                                },
-                                {
-                                    name:'Generic 384',
-                                    num_rows:16,
-                                    num_columns:24,
-                                    id:"ge384"
-                                },
-                                {
-                                    name:'Falcon 384',
-                                    num_rows:16,
-                                    num_columns:24,
-                                    id:"fa-384"
-                                },
-                                {
-                                    name:'Perkin-Elmer 384',
-                                    num_rows:16,
-                                    num_columns:24,
-                                    id:"pe-384"
-                                }
-                            ]
-                            function get_plate_info(plate_id){
-                                for(let plate_type of plate_types){
-                                    if(plate_type.id==plate_id){
-                                        return plate_type
-                                    }
-                                }
-                                return null
-                            }
-                        </script>
-                        <select id="well-plate-type-dropdown" onchange="calc_well_plate_size(event)">
-                            <optgroup label="96 Well Plates">
-                                <option value="ge96">Generic 96</option>
-                                <option value="fa-96">Falcon 96</option>
-                                <option value="pe-96">Perkin-Elmer 96</option>
-                            </optgroup>
-                            <optgroup label="384 Well Plates">
-                                <option value="ge384">Generic 384</option>
-                                <option value="fa-384">Falcon 384</option>
-                                <option value="pe-384">Perkin-Elmer 384</option>
-                            </optgroup>
-                        </select>
-                        <input type="checkbox" name="lock-plate-type" value="lock-plate-type">
-
-                        <label>Objective</label>
-                        <select>
-                            <option>20x (Olympus)</option>
-                            <option>10x (Olympus)</option>
-                            <option>4x (Olympus)</option>
-                        </select>
-                        <input type="checkbox" name="lock-objective" value="lock-objective">
-
-                        <style>
-                            #acquisition-grid-setup{
-                                grid-column: 1 / span 2;
-
-                                display: grid;
-                                grid-template-columns: max-content auto max-content auto auto;
-                            }
-                            #acquisition-grid-setup > input[type=number]{
-                                text-align: right;
-                                width: auto;
-                            }
-                            #acquisition-grid-setup-delta-t{
-                                grid-column: 4 / span 2;
-
-                                display:grid;
-                                grid-template-columns: repeat(6,min-content);
-                                width: min-content;
-                            }
-                            #acquisition-grid-setup-delta-t > input{
-                                text-align: right;
-                                width: auto;
-                            }
-                            #acquisition-grid-setup-delta-t :nth-child(2n){
-                                border-right:1px solid black;
-                                margin-right:0.5em;
-                            }
-                            #acquisition-grid-setup-delta-t :last-child{
-                                border-right:none;
-                            }
-                            #acquisition-grid-setup-grid-mask{
-                                grid-row: 1 / span 3 ;
-                                grid-column: 5;
-
-                                --height:6em;
-                                --width:6em;
-
-                                height: var(--height);
-                                width: var(--width);
-
-                                --num-elements-x: 4;
-                                --num-elements-y: 4;
-
-                                display:grid;
-                                grid-template-columns: repeat(var(--num-elements-x),auto);
-                                grid-template-rows: repeat(var(--num-elements-y),auto);
-
-                                justify-content: center; /* Center grid items along the row */
-                                align-content: center; /* Center grid items along the column */
-                                grid-gap: 0; /* Remove spacing between grid items */
-                            }
-                            .acquisition-grid-mask-item{
-                                cursor:pointer;
-
-                                background-color: lightgray;
-                                border:1px solid white;
-
-                                --side-length: min(var(--height) / var(--num-elements-y) - 2px,var(--width) / var(--num-elements-x) - 2px);
-
-                                height: var(--side-length);
-                                width: var(--side-length);
-                            }
-                            .acquisition-grid-mask-item.selected{
-                                background-color: lightblue;
-                            }
-                        </style>
-                        <div id="acquisition-grid-setup">
-                            <div id="acquisition-grid-setup-grid-mask"></div>
-
-                            <label>num acq. x</label><input id="num-acq-x" type="number" value="1" step="1" min="1" max="10" oninput="recalc_grid(event,'x')" onwheel="recalc_grid(event,'x')"/>
-                            <label>delta x (mm)</label><input type="number" value="0.9" min="0.1" max="5.0"/>
-
-                            <label>num acq. y</label><input id="num-acq-y" type="number" value="1" step="1" min="1" max="10" oninput="recalc_grid(event,'y')" onwheel="recalc_grid(event,'y')"/>
-                            <label>delta y (mm)</label><input type="number" value="0.9" min="0.1" max="5.0"/>
-
-                            <label>num acq. z</label><input type="number" value="1" step="1" min="1" max="1000"/>
-                            <label>delta z (um)</label><input type="number" value="2" min="0.1" max="100.0"/>
-
-                            <label>num acq. t</label><input type="number" value="1" step="1" min="1" max="1000"/>
-                            <label>delta t</label>
-                            <div id="acquisition-grid-setup-delta-t">
-                                <label>h</label><input type="number" value="1" min="0" max="1000"/>
-                                <label>m</label><input type="number" value="0" min="0" max="59"/>
-                                <label>s</label><input type="number" value="0" min="0" max="59"/>
-                            </div>
-
-                            <script>
-                                function recalc_grid(event=null,axis=null){
-                                    let grid_mask=document.getElementById("acquisition-grid-setup-grid-mask")
-
-                                    let num_x=parseInt(document.getElementById("num-acq-x").value)
-                                    let num_y=parseInt(document.getElementById("num-acq-y").value)
-
-                                    if(axis=="x"){
-                                        console.log("recalc x",num_x)
-                                    }
-                                    if(axis=="y"){
-                                        console.log("recalc y",num_y)
-                                    }
-
-                                    grid_mask.style.setProperty("--num-elements-x",num_x)
-                                    grid_mask.style.setProperty("--num-elements-y",num_y)
-
-                                    while(grid_mask.firstChild){
-                                        grid_mask.removeChild(grid_mask.firstChild)
-                                    }
-                                    if(grid_mask.children.length!=0){
-                                        console.log("grid_mask.children.length!=0",grid_mask.children.length)
-                                    }
-
-                                    // create new grid array if it does not exist
-                                    try{
-                                        let _a=grid_mask.mask[0]
-                                    }catch{
-                                        grid_mask.mask=[]
-                                    }
-
-                                    // truncate existing grid to new size, if new size is smaller than old size (part 1/2)
-                                    if(grid_mask.mask.length>num_y){
-                                        grid_mask.mask.length=num_y
-                                    }
-                                    for(let y=1;y<=num_y;y++){
-                                        // extend existing grid to new size, if new size is larger than old size (part 1/2)
-                                        if(grid_mask.mask.length<=y){
-                                            grid_mask.mask.push([])
-                                        }
-                                        let row=grid_mask.mask[y-1]
-
-                                        // truncate existing grid to new size, if new size is smaller than old size (part 2/2)
-                                        if(row.length>num_x){
-                                            row.length=num_x
-                                        }
-                                        for(let x=1;x<=num_x;x++){
-                                            // extend existing grid to new size, if new size is larger than old size (part 2/2)
-                                            if(row.length<=x){
-                                                row.push(true)
-                                            }
-
-                                            let new_child=document.createElement("div")
-                                            grid_mask.appendChild(new_child)
-                                            new_child.setAttribute("grid-row",y)
-                                            new_child.setAttribute("grid-column",x)
-                                            new_child.classList.add("acquisition-grid-mask-item")
-                                            if(row[x-1]){
-                                                new_child.classList.add("selected")
-                                            }
-
-                                            new_child.addEventListener("click",function(event){
-                                                let event_target=event.target
-
-                                                let grid_row=parseInt(event_target.getAttribute("grid-row"))
-                                                let grid_column=parseInt(event_target.getAttribute("grid-column"))
-
-                                                event_target.classList.toggle("selected")
-
-                                                grid_mask.mask[grid_row-1][grid_column-1]=!grid_mask.mask[grid_row-1][grid_column-1]
-                                            })
-                                        }
-                                    }
-
-                                    console.log("called with event",event)
-                                }
-                                recalc_grid()
-                            </script>
-                        </div>
-                        <input type="checkbox" name="lock-grid-setup" value="lock-grid-setup">
-
-                        <style>
-                            #acquisition-plate-selection-container{
-                                width:100%;
-
-                                grid-column: 1 / span 2;
-                            }
-                            #acquisition-plate-selection-grid{
-                                width:100%;
-
-                                display:grid;
-
-                                --num-items-x:2;
-                                --num-items-y:1;
-
-                                --item-size:20px;
-
-                                grid-template-columns: repeat(var(--num-items-x),auto);
-                                grid-template-rows: repeat(var(--num-items-y),auto);
-                            }
-                            #acquisition-plate-selection-grid > div.header{
-                                background-color:lightgray;
-                                text-align: center;
-                                user-select: none;
-                            }
-                            #acquisition-plate-selection-grid > div{
-                                height:var(--item-size);
-                                width:var(--item-size);
-
-                                cursor:pointer;
-
-                                position:relative;
-                            }
-                            #acquisition-plate-selection-grid > div > div{
-                                position: absolute;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%);
-                            }
-                            .acquisition-plate-selection-item:hover{
-                                background-color:lightgrey;
-                            }
-                            .acquisition-plate-selection-item.selected{
-                                background-color:lightblue;
-                            }
-                        </style>
-                        <div id="acquisition-plate-selection-container">
-                            <div id="acquisition-plate-selection-grid"></div>
-
-                            <script>
-                                function calc_well_plate_size(event=null){
-                                    let grid=document.getElementById("acquisition-plate-selection-grid")
-
-                                    let num_x=grid.style.getPropertyValue("--num-items-x")
-                                    let num_y=grid.style.getPropertyValue("--num-items-y")
-
-                                    let new_plate_type=plate_types[0]
-                                    try{
-                                        new_plate_type=get_plate_info(document.getElementById("well-plate-type-dropdown").value)
-                                    }catch{}
-
-                                    num_x=new_plate_type.num_columns+1
-                                    num_y=new_plate_type.num_rows+1
-
-                                    // clear grid
-                                    while(grid.firstChild){
-                                        grid.removeChild(grid.firstChild)
-                                    }
-                                    // just make sure grid.mask exists
-                                    try{
-                                        let _a=grid.mask[0]
-                                    }catch{
-                                        grid.mask=[]
-                                    }
-
-                                    // then get grid size (100% of parent container, now with all children gone)
-                                    let grid_item_size=grid.offsetWidth/num_x
-
-                                    grid.style.setProperty("--num-items-x",num_x)
-                                    grid.style.setProperty("--num-items-y",num_y)
-                                    
-                                    grid.style.setProperty("--item-size",grid_item_size+"px")
-
-                                    // truncate existing grid to new size, if new size is smaller than old size (part 1/2)
-                                    if(grid.mask.length>num_y){
-                                        grid.mask.length=num_y
-                                    }
-                                    for(let y=0;y<num_y;y++){
-                                        // extend existing grid to new size, if new size is larger than old size (part 1/2)
-                                        if(grid.mask.length<=y){
-                                            grid.mask.push([])
-                                        }
-
-                                        // truncate existing grid to new size, if new size is smaller than old size (part 2/2)
-                                        let current_row=grid.mask[y]
-                                        if(current_row.length>num_x){
-                                            grid.mask[y].length=num_x
-                                        }
-
-                                        for(let x=0;x<num_x;x++){
-                                            // extend existing grid to new size, if new size is larger than old size (part 2/2)
-                                            if(current_row.length<=x){
-                                                current_row.push(false)
-                                            }
-
-                                            let grid_item=document.createElement("div")
-                                            grid_item.classList.add("acquisition-plate-selection-item")
-                                            grid_item.setAttribute("grid-row",y)
-                                            grid_item.setAttribute("grid-column",x)
-                                            grid_item.addEventListener("click",toggle_well_selection)
-                                            if(current_row[x]){
-                                                grid_item.classList.add("selected")
-                                            }
-
-                                            grid_item.appendChild(document.createElement("div"))
-
-                                            if(y==0){
-                                                if(x!=0){
-                                                    grid_item.children[0].innerText=x
-                                                }
-                                            }
-                                            if(x==0){
-                                                if(y!=0){
-                                                    grid_item.children[0].innerText=String.fromCharCode("A".charCodeAt(0)+y-1)
-                                                }
-                                            }
-
-                                            if(x==0 || y==0){
-                                                grid_item.classList.add("header")
-                                            }
-
-                                            grid.appendChild(grid_item)
-                                        }
-                                    }
-                                }
-                                calc_well_plate_size()
-
-                                window.addEventListener("resize",calc_well_plate_size)
-
-                                function toggle_well_selection(event=null){
-                                    let grid=document.getElementById("acquisition-plate-selection-grid")
-
-                                    let event_target=event.target
-
-                                    if(!event_target.classList.contains("acquisition-plate-selection-item")){
-                                        event_target=event_target.parentElement
-                                    }
-
-                                    let row=parseInt(event_target.getAttribute("grid-row"))
-                                    let column=parseInt(event_target.getAttribute("grid-column"))
-
-                                    if(row==0 && column==0){
-                                        let all_selected=true
-                                        for(child of grid.children){
-                                            if(child.classList.contains("header")){
-                                                continue
-                                            }
-                                            if(!child.classList.contains("selected")){
-                                                all_selected=false
-                                                break
-                                            }
-                                        }
-
-                                        let new_toggle_state=!all_selected
-                                        for(child of grid.children){
-                                            let child_row=parseInt(child.getAttribute("grid-row"))
-                                            let child_column=parseInt(child.getAttribute("grid-column"))
-                                            if(child_row!=0 && child_column!=0){
-                                                child.classList.toggle("selected",new_toggle_state)
-                                                grid.mask[child_row][child_column]=new_toggle_state
-                                            }
-                                        }
-                                        return
-                                    }
-                                    if(column==0){
-                                        let children_in_row=[]
-                                        for(child of grid.children){
-                                            if(child.classList.contains("header")){
-                                                continue
-                                            }
-                                            let child_row=parseInt(child.getAttribute("grid-row"))
-                                            let child_column=parseInt(child.getAttribute("grid-column"))
-                                            if(child_column!=0 && child_row==row){
-                                                children_in_row.push(child)
-                                            }
-                                        }
-
-                                        let all_selected=true
-                                        for(child of children_in_row){
-                                            if(!child.classList.contains("selected")){
-                                                all_selected=false
-                                                break
-                                            }
-                                        }
-
-                                        let new_toggle_state=!all_selected
-                                        for(child of children_in_row){
-                                            let child_row=parseInt(child.getAttribute("grid-row"))
-                                            let child_column=parseInt(child.getAttribute("grid-column"))
-                                            if(child_row!=0 && child_column!=0){
-                                                child.classList.toggle("selected",new_toggle_state)
-                                                grid.mask[child_row][child_column]=new_toggle_state
-                                            }
-                                        }
-                                        return
-                                    }
-                                    if(row==0){
-                                        let children_in_column=[]
-                                        for(child of grid.children){
-                                            if(child.classList.contains("header")){
-                                                continue
-                                            }
-                                            let child_row=parseInt(child.getAttribute("grid-row"))
-                                            let child_column=parseInt(child.getAttribute("grid-column"))
-                                            if(child_row!=0 && child_column==column){
-                                                children_in_column.push(child)
-                                            }
-                                        }
-
-                                        let all_selected=true
-                                        for(child of children_in_column){
-                                            if(!child.classList.contains("selected")){
-                                                all_selected=false
-                                                break
-                                            }
-                                        }
-
-                                        let new_toggle_state=!all_selected
-                                        for(child of children_in_column){
-                                            let child_row=parseInt(child.getAttribute("grid-row"))
-                                            let child_column=parseInt(child.getAttribute("grid-column"))
-                                            if(child_row!=0 && child_column!=0){
-                                                child.classList.toggle("selected",new_toggle_state)
-                                                grid.mask[child_row][child_column]=new_toggle_state
-                                            }
-                                        }
-                                        return
-                                    }
-
-                                    if(row!=0 && column!=0){
-                                        event_target.classList.toggle("selected")
-                                        grid.mask[row][column]=!grid.mask[row][column]
-                                    }
-                                }
-                            </script>
-                        </div>
-                        <input type="checkbox" name="lock-well-selection" value="lock-well-selection">
-
-                        <style>
-                            #start-acquisition-button,#stop-acquisition-button{
-                                padding:0.5em;
-                            }
-                            #acquisition-progress-bar{
-                                --progress:40%;
-                                grid-column: 1 / span 2;
-
-                                height: 2em;
-                                background-image: linear-gradient(to right, lightblue 0%, lightblue var(--progress), white var(--progress), white 100%);
-                            
-                                position:relative;
-                            }
-
-                            #acquisition-progress-bar > div{
-                                position: absolute;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%);
-                            }
-                        </style>
-
-                        <button id="start-acquisition-button">Start Acquisition</button>
-                        <button id="stop-acquisition-button">Stop Acquisition</button>
-                        <div><!--intentionally empty--></div>
-
-                        <div id="acquisition-progress-bar">
-                            <div>Acquisition in progress: {{progress}}</div>
-                        </div>
-                        <script>
-                            setInterval(function(){
-                                let progress_bar=document.getElementById("acquisition-progress-bar")
-
-                                let current_progress=parseFloat(progress_bar.getAttribute("progress-percent"))
-                                if(isNaN(current_progress)){
-                                    current_progress=0
-
-                                    progress_bar.initial_text=progress_bar.children[0].innerText
-                                }
-                                if(current_progress>=1){
-                                    current_progress=0
-                                }else{
-                                    current_progress+=1/337
-                                }
-
-                                const num_decimals=2
-
-                                let current_progress_percent_text=(current_progress*100).toFixed(num_decimals)+"%"
-                                progress_bar.children[0].innerText=progress_bar.initial_text.replace("{{progress}}",current_progress_percent_text)
-
-                                progress_bar.style.setProperty("--progress",current_progress_percent_text)
-                                progress_bar.setAttribute("progress-percent",current_progress)
-                            },50)
-                        </script>
-                        <div><!--intentionally empty--></div>
-
-                    </div>
-                    <style>
-                        #illumination-panel{
-                            height:100%;
-                            overflow-y: scroll;
-                        }
-                    </style>
-                    <div class="tab-body" tab-name="Illumination" id="illumination-panel">
-                        <script>
-                            function add_channel(event){
-                                let channel_list=document.getElementById("illumination-channel-list")
-
-                                let new_channel=channel_list.channel_template.cloneNode(true)
-
-                                channel_list.appendChild(new_channel)
-                            }
-                        </script>
-                        <style>
-                            .illumination-channel-list-item{
-                                margin-bottom:0.3em;
-
-                                display:grid;
-                                grid-template-columns: auto auto auto auto;
-                                grid-template-rows: auto auto auto;
-
-                                grid-gap: 0.2em;
-                            }
-                            .illumination-channel-list-item-name{
-                                grid-column: 1 / span 4;
-                                height:auto;
-                                font-size: 1.2em;
-                                font-weight: bold;
-                                margin-bottom: 0.2em;
-                            }
-
-                            #illumination-channel-add-button{
-                                width:100%;
-                                text-align: center;
-                                height:2em;
-                                font-size: 1.2em;
-                            }
-
-                            .illumination-channel-list-item > button{
-                                height: 1.5em;
-                                font-size: 1em;
-
-                                margin-top: 0.5em;
-                            }
-                        </style>
-
-                        <div id="illumination-channel-list">
-                            <div class="illumination-channel-list-item">
-                                <input type="text" placeholder="Enter Custom Channel Name" class="illumination-channel-list-item-name">
-
-                                <label>Light Source</label>
-                                <select>
-                                    <optgroup label="Fluorescence">
-                                        <option>Laser 405nm</option>
-                                        <option>Laser 488nm</option>
-                                        <option>Laser 561nm</option>
-                                        <option>Laser 688nm</option>
-                                        <option>Laser 730nm</option>
-                                    </optgroup>
-                                    <optgroup label="Brightfield">
-                                        <option>Brightfield (full)</option>
-                                        <option>Brightfield (left)</option>
-                                        <option>Brightfield (right)</option>
-                                    </optgroup>
-                                </select>
-
-                                <label>Exposure time (ms)</label>
-                                <input type="number" min="0.1" max="936.0" step="0.1" value="10.0"/>
-
-                                <label>Analog gain</label>
-                                <input type="number" min="0.0" max="24.0" step="0.1" value="0.0"/>
-
-                                <label>Illumination (%)</label>
-                                <input type="number" min="0.0" max="100.0" step="0.1" value="100.0"/>
-
-                                <script>
-                                    function channel_update(event,action="up"){
-                                        let event_target=event.target
-
-                                        let channel_list_item=event_target.parentElement
-                                        let channel_list_container=channel_list_item.parentElement
-
-                                        if(action=="move_up"){
-                                            channel_list_container.insertBefore(channel_list_item,channel_list_item.previousElementSibling)
-                                        }else if(action=="move_down"){
-                                            channel_list_container.insertBefore(channel_list_item,channel_list_item.nextElementSibling.nextElementSibling)
-                                        }else if(action=="remove"){
-                                            channel_list_container.removeChild(channel_list_item)
-                                        }else if(action=='duplicate'){
-                                            let new_channel=channel_list_item.cloneNode(true)
-                                            let channel_name=new_channel.children[0].value
-                                            if(channel_name.replaceAll(" ","").length>0){
-                                                channel_name+=" (copy)"
-                                            }else{
-                                                channel_name=""
-                                            }
-                                            new_channel.children[0].value=channel_name
-                                            channel_list_container.insertBefore(new_channel,channel_list_item.nextElementSibling)
-                                        }else{
-                                            console.log("unknown direction",direction)
-                                        }
-                                    }
-                                </script>
-
-                                <button onclick="channel_update(event,'move_up')">Move Up</button>
-                                <button onclick="channel_update(event,'move_down')">Move Down</button>
-                                <button onclick="channel_update(event,'duplicate')">Duplicate</button>
-                                <button onclick="channel_update(event,'remove')">Remove</button>
-                            </div>
-                            <script>
-                                let channel_list=document.getElementById("illumination-channel-list")
-                                channel_list.channel_template=channel_list.children[0]
-                                channel_list.removeChild(channel_list.children[0])
-                            </script>
-                        </div>
-
-                        <button id="illumination-channel-add-button" onclick="add_channel(event)">Add Channel</button>
-                    </div>
-                    <div class="tab-body" tab-name="Focus" id="focus-panel">
-                        <div>
-                            <label>Channel</label>
-                            <select>
-                                <optgroup label="these options will correspond to the configured imaging channels in the dedicated channel setup panel">
-                                    <option>whatever</option>
-                                    <option>TODO</option>
-                                </optgroup>
-                                <option>first channel</option>
-                                <option>second channel</option>
-                                <option>third channel</option>
-                            </select>
-
-                            <label>num measurements</label>
-                            <input type="number"/>
-
-                            <label>delta z</label>
-                            <input type="number"/>
-
-                            <button>Run</button>
-                        </div>
-                        <div>
-                            <div>
-                                <button>Initialize</button>
-                                <button>Set Reference Plane</button>
-                                <button>Move to reference plane</button>
-
-                                <button>measure offset</button>
-                                <div id="autofocus-laser-measure-offset-output">23.4um</div>
-
-                                <label>target offset (um)</label>
-                                <input type="number"/>
-                                <button>Move to offset</button>
-                            </div>
-                        </div>
-                        <div>
-                            <div>histogram for all channels selected below will show here</div>
-
-                            <select>
-                                <option>first channel</option>
-                                <option>two channel</option>
-                                <option>third channel</option>
-                                <option>fourth channel</option>
-                                <option>TODO (sync to dedicated panel)</option>
-                            </select>
-                            <input type="checkbox">show histogram</input>
-
-                            <select>
-                                <option>first channel</option>
-                                <option>two channel</option>
-                                <option>third channel</option>
-                                <option>fourth channel</option>
-                                <option>TODO (sync to dedicated panel)</option>
-                            </select>
-                            <input type="checkbox">show histogram</input>
-                        </div>
-                    </div>
-                </div>
+            <div class="tab-body" tab-name="run" id="whaasdastverasd">
             </div>
         </div>
 
-        <div id="element_containing_external_links">
-            <style>
-                #element_containing_external_links{
-                    display:none;
-                }
-            </style>
-
+        <div id="element_containing_external_links" style="display:none;">
             <link rel="stylesheet" href="components/tab/style.css">
             <script src="components/tab/logic.js"></script>
 
             <link rel="stylesheet" href="components/dynamic-image/style.css">
             <script src="components/dynamic-image/logic.js"></script>
 
-            <!--
-                make all number input fields adhere to their min/max values during input
-                and allow using scroll to adjust their values
-            -->
-            <script>
-                for(element of document.getElementsByTagName("INPUT")){
-                    let input_type=element.getAttribute("type")
-                    if(input_type=="number"){
-                        element.addEventListener("input",function(event){
-                            let event_target=event.target
-
-                            let min_value=parseFloat(event_target.getAttribute("min"))
-                            let max_value=parseFloat(event_target.getAttribute("max"))
-                            let step_value=parseFloat(event_target.getAttribute("step"))
-
-                            let current_value=parseFloat(event_target.value)
-
-                            if(current_value<min_value){
-                                event_target.value=min_value
-                            }
-                            if(current_value>max_value){
-                                event_target.value=max_value
-                            }
-                        })
-                        element.addEventListener("wheel",function(event){
-                            event.preventDefault()
-
-                            let event_target=event.target
-
-                            let min_value=parseFloat(event_target.getAttribute("min"))
-                            let max_value=parseFloat(event_target.getAttribute("max"))
-                            let step_value=parseFloat(event_target.getAttribute("step")) || 1
-
-                            let current_value=parseFloat(event_target.value)
-
-                            if(event.deltaY>0){
-                                current_value-=step_value
-                            }
-                            if(event.deltaY<0){
-                                current_value+=step_value
-                            }
-
-                            if(current_value<min_value){
-                                current_value=min_value
-                            }
-                            if(current_value>max_value){
-                                current_value=max_value
-                            }
-                            event_target.value=current_value
-                        })
-                    }
-                }
-            </script>
-
             <!-- loading page done - deactive loading screen overlay-->
             <script>
+                let mutation_observer=new MutationObserver((mutations)=>{
+                    mutations.forEach((mutation)=>{
+                        if(mutation.type=="childList"){
+                            if(mutation.addedNodes.length>0){
+                                console.log("added something to the dom")
+                            }
+                            for(let node of mutation.addedNodes){
+                                p.init(node,true)
+                            }
+                        }
+                    })
+                })
+                mutation_observer.observe(document.body,{attributes:false,childList:true,characterData:false,subtree:true})
+
                 setTimeout(function(){
                     document.getElementById("bigblank").classList.add("inactive")
                 },300)
