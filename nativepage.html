@@ -25,7 +25,11 @@
             button:hover{
                 background-color:rgb(175, 175, 175);
             }
+            img{
+                image-rendering: pixelated;
+            }
         </style>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     </head>
     <body>
         <style>
@@ -883,13 +887,59 @@
                     </div>
                     <div class="tab-body" tab-name="Focus" id="focus-panel">
                         <div>
-                            Software Autofocus
+                            <label>Channel</label>
+                            <select>
+                                <optgroup label="these options will correspond to the configured imaging channels in the dedicated channel setup panel">
+                                    <option>whatever</option>
+                                    <option>TODO</option>
+                                </optgroup>
+                                <option>first channel</option>
+                                <option>second channel</option>
+                                <option>third channel</option>
+                            </select>
+
+                            <label>num measurements</label>
+                            <input type="number"/>
+
+                            <label>delta z</label>
+                            <input type="number"/>
+
+                            <button>Run</button>
                         </div>
                         <div>
-                            Laser Autofocus
+                            <div>
+                                <button>Initialize</button>
+                                <button>Set Reference Plane</button>
+                                <button>Move to reference plane</button>
+
+                                <button>measure offset</button>
+                                <div id="autofocus-laser-measure-offset-output">23.4um</div>
+
+                                <label>target offset (um)</label>
+                                <input type="number"/>
+                                <button>Move to offset</button>
+                            </div>
                         </div>
                         <div>
-                            Manual Focus
+                            <div>histogram for all channels selected below will show here</div>
+
+                            <select>
+                                <option>first channel</option>
+                                <option>two channel</option>
+                                <option>third channel</option>
+                                <option>fourth channel</option>
+                                <option>TODO (sync to dedicated panel)</option>
+                            </select>
+                            <input type="checkbox">show histogram</input>
+
+                            <select>
+                                <option>first channel</option>
+                                <option>two channel</option>
+                                <option>third channel</option>
+                                <option>fourth channel</option>
+                                <option>TODO (sync to dedicated panel)</option>
+                            </select>
+                            <input type="checkbox">show histogram</input>
                         </div>
                     </div>
                 </div>

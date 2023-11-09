@@ -11,7 +11,10 @@
     --top:0px;
     --scale:1;
 
-    transform: translate( var(--left) , var(--top) ) scale( var(--scale) ) ;
+    left:var(--left);
+    top:var(--top);
+
+    transform: scale( var(--scale) ) ;
 }
 .dynamic-image-container{
     position:relative;

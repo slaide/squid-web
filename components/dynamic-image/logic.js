@@ -112,6 +112,31 @@ for(element of document.getElementsByClassName("dynamic-image-display")){
     
             // stop observing
             observer.unobserve(entry.target);
+
+            if(!isFinite(entry.target.parentNode.image_scale)){
+                let interval_timer=setInterval(function(){
+                    let img_height=entry.target.clientHeight
+                    let img_width=entry.target.clientWidth
+        
+                    // get container size
+                    let container_height=entry.target.parentNode.clientHeight
+                    let container_width=entry.target.parentNode.clientWidth
+        
+                    // calculate image scale to display in full
+                    let height_ratio=container_height/img_height
+                    let width_ratio=container_width/img_width
+        
+                    // reduce scale slightly for some nicer visual presentation (and to make it clear that the whole image is in view)
+                    let scale=Math.min(height_ratio,width_ratio)*0.95
+
+                    entry.target.parentNode.image_scale=scale
+
+                    if(isFinite(entry.target.parentNode.image_scale)){
+                        entry.target.parentNode.children[0].style.setProperty("--scale",entry.target.parentNode.image_scale)
+                        clearInterval(interval_timer)
+                    }
+                },100)
+            }
         }
       });
     }, { threshold: 0.01 }); // Execute callback when at least 1% of the target is visible
