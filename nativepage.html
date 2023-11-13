@@ -229,43 +229,254 @@
             <div class="tab-body" tab-name="well selection + grid" id="live-view-bodys">
                 <style>
                     #well-selection-container{
-                        background-color:red;
                         width:100%;
                         height:100%;
                         display:grid;
 
-                        grid-template-columns: repeat(var(--num-columns), 1fr);
-                        grid-template-rows: repeat(var(--num-rows), 1fr);
+                        grid-template-columns: repeat(var(--num-columns), auto);
+                        grid-template-rows: repeat(var(--num-rows), auto);
+
+                        justify-content: center;
+                        align-items: start;
+                        align-content: start;
+                        grid-gap:0;
+
+                        overflow: hidden;
+                    }
+                    #well-selection-container > div{
+                        border: 1px solid black;
+                    }
+                    .well-item{
+                        background-color:white;
+                        cursor:pointer;
+                        text-align:center;
+                        user-select:none;
+                        position:relative;
+
+                        --default-background:white;
+                        --highlight-color:red;
+                        --select-color:lightblue;
+
+                        --background:var(--default-background);
+
+                        background:var(--background);
+                    }
+                    .well-item > div{
+                        left:50%;
+                        top:50%;
+                        transform:translate(-50%,-50%);
+                        position:absolute;
+                    }
+                    .well-item > div.well-item-title-all{
+                        font-size:0.8em;
+                        transform:translate(-50%,-50%) rotate(-45deg);
+                    }
+                    .well-item.selected{
+                        --background:var(--select-color);
+                    }
+                    .well-item.highlight{
+                        --transition-border:20%;
+                        background:linear-gradient(-45deg,var(--highlight-color) 0%,var(--highlight-color) var(--transition-border), var(--background) var(--transition-border), var(--background) 100%);
                     }
                 </style>
                 <script>
                     p.init_well_selection=function(element){
-                        let container_width=element.clientWidth
-                        let container_height=element.clientHeight
-
-                        let well_count_x=12
-                        let well_count_y=8
+                        let well_count_x=12+1
+                        let well_count_y=8+1
 
                         element.style.setProperty("--num-columns",well_count_x)
                         element.style.setProperty("--num-rows",well_count_y)
 
+                        // adjust the number of children, if required
+                        if(element.children.length!=well_count_x*well_count_y){
+                            while(element.firstChild){
+                                element.removeChild(element.firstChild)
+                            }
+
+                            for(let y=0;y<well_count_y;y++){
+                                for(let x=0;x<well_count_x;x++){
+                                    let well=this.templates.well_item.cloneNode(true).firstElementChild
+
+                                    well.setAttribute("plate-col",x)
+                                    well.setAttribute("plate-row",y)
+
+                                    if(x==0 && y!=0){
+                                        well.children[0].innerText=String.fromCharCode("A".charCodeAt(0) +y-1)
+                                    }else if(y==0 && x!=0){
+                                        well.children[0].innerText=x
+                                    }else if(x==0 && y==0){
+                                        well.children[0].innerText="WHOLE PLATE"
+                                        well.children[0].classList.add("well-item-title-all")
+                                    }
+
+                                    element.appendChild(well)
+                                }
+                            }
+                        }
+
+                        // make the children invisible to only get the size of the container, without any potential distortion from the children
+                        for(var child of element.children){
+                            child.style.display="none"
+                        }
+
+                        let container_width=element.offsetWidth
+                        let container_height=element.offsetHeight
+
+                        // calculate the size of the wells, so that they fit into the container
                         let well_width=container_width/well_count_x
                         let well_height=container_height/well_count_y
 
-                        let well_size=Math.min(well_width,well_height)
+                        // minus 2 for border (TODO)
+                        let well_size=Math.min(well_width,well_height)-2
 
-                        for(let x=0;x<well_count_x;x++){
-                            for(let y=0;y<well_count_y;y++){
-                                let well=document.createElement("div")
-                                well.style.width=well_size+"px"
-                                well.style.height=well_size+"px"
-                                well.style.border="1px solid black"
-                                element.appendChild(well)
+                        // set size and make children visible again
+                        for(var child of element.children){
+                            child.style.width=well_size+"px"
+                            child.style.height=well_size+"px"
+                            child.style.display="block"
+                        }
+                    }
+                    p.get_wells_from_current=function(element){
+                        /// get all wells that are affected by the current interaction
+                        /// if the interaction is on a well, return only that well
+                        /// if the interaction is on a row or column, return all wells in that row or column
+
+                        let row=element.getAttribute("plate-row")
+                        let col=element.getAttribute("plate-col")
+
+                        let well_elements=[element]
+                        if(row==0 && col!=0){
+                            well_elements=element.parentElement.querySelectorAll(`[plate-col="${col}"][plate-row]:not([plate-row="0"])`)
+                        }else if(col==0 && row!=0){
+                            well_elements=element.parentElement.querySelectorAll(`[plate-row="${row}"][plate-col]:not([plate-col="0"])`)
+                        }else if(col==0 && row==0){
+                            well_elements=element.parentElement.querySelectorAll(`[plate-col]:not([plate-col="0"])[plate-row]:not([plate-row="0"])`)
+                        }
+                        return well_elements
+                    }
+                    p.well_hover_begin=function(event){
+                        for(let element of this.get_wells_from_current(event.currentTarget)){
+                            element.classList.add("highlight")
+                        }
+                    }
+                    p.well_hover_end=function(event){
+                        for(let element of this.get_wells_from_current(event.currentTarget)){
+                            element.classList.remove("highlight")
+                        }
+                    }
+                    p.well_select_drag_begin=function(event){
+                        // init 'well drag' (i.e. click and drag to select multiple wells)
+                        this.well_drag={origin:event.currentTarget,selected_wells:[]}
+
+                        // register drag on initial element
+                        this.well_select_drag_register(event)
+                    }
+                    p.well_select_drag_cancel=function(event){
+                        /// cancel drag selection (do not select anything, remove all highlights)
+
+                        if(!this.well_drag){
+                            return
+                        }
+
+                        for(let well of this.well_drag.selected_wells){
+                            well.classList.remove("highlight")
+                        }
+                        this.well_drag=null
+                    }
+                    p.well_select_drag_end=function(event){
+                        /// end drag selection (select all wells that are in the drag area)
+
+                        if(!this.well_drag){
+                            return
+                        }
+
+                        let all_selected=true
+                        for(let well of this.well_drag.selected_wells){
+                            if(!well.classList.contains("selected")){
+                                all_selected=false
+                                break
                             }
+                        }
+
+                        for(let well of this.well_drag.selected_wells){
+                            // remove highlight on all wells (except the one where the pointer is currently above)
+                            if(well!==event.currentTarget){
+                                well.classList.remove("highlight")
+                            }
+                            
+                            // actually (de-)select the wells in the highlighted area
+                            if(all_selected){
+                                well.classList.remove("selected")
+                            }else{
+                                well.classList.add("selected")
+                            }
+                        }
+                        
+                        // indicate stop of drag
+                        this.well_drag=null
+                    }
+                    p.well_select_drag_register=function(event){
+                        if(!this.well_drag){
+                            return
+                        }
+
+                        // remove highlight on wells in previous drag area
+                        let well_container=event.currentTarget.parentElement
+
+                        for(let well of this.well_drag.selected_wells){
+                            well.classList.remove("highlight")
+                        }
+                        this.well_drag.selected_wells=[]
+
+                        // calculate bounding box of new drag area
+                        let event_start_row=this.well_drag.origin.getAttribute("plate-row")
+                        let event_start_col=this.well_drag.origin.getAttribute("plate-col")
+
+                        let event_end_row=event.currentTarget.getAttribute("plate-row")
+                        let event_end_col=event.currentTarget.getAttribute("plate-col")
+
+                        let row_start=Math.min(event_start_row,event_end_row)
+                        let row_end=Math.max(event_start_row,event_end_row)
+                        let col_start=Math.min(event_start_col,event_end_col)
+                        let col_end=Math.max(event_start_col,event_end_col)
+
+                        // get elements in new drag area
+                        for(let child of well_container.children){
+                            let child_row=child.getAttribute("plate-row")
+                            let child_col=child.getAttribute("plate-col")
+
+                            if(child_row>=row_start && child_row<=row_end && child_col>=col_start && child_col<=col_end){
+                                if(child_row==0 && child_col==0){
+                                    for(let well_in_col of well_container.querySelectorAll(`[plate-col]:not([plate-col="0"])[plate-row]:not([plate-row="0"])`)){
+                                        this.well_drag.selected_wells.push(well_in_col)
+                                    }
+                                }else if(child_row==0 && child_col!=0){
+                                    for(let well_in_col of well_container.querySelectorAll(`[plate-col="${child_col}"][plate-row]:not([plate-row="0"])`)){
+                                        this.well_drag.selected_wells.push(well_in_col)
+                                    }
+                                }else if(child_row!=0 && child_col==0){
+                                    for(let well_in_row of well_container.querySelectorAll(`[plate-row="${child_row}"][plate-col]:not([plate-col="0"])`)){
+                                        this.well_drag.selected_wells.push(well_in_row)
+                                    }
+                                }else{
+                                    this.well_drag.selected_wells.push(child)
+                                }
+                            }
+                        }
+
+                        // highlight wells in new drag area
+                        for(let well of this.well_drag.selected_wells){
+                            well.classList.add("highlight")
                         }
                     }
                 </script>
-                <div id="well-selection-container" class="data" p:init-vis="init_well_selection"></div>
+                <div id="well-selection-container" class="data" p:init-vis="init_well_selection" p:on-resize="init_well_selection" p:on-mouseleave="well_select_drag_cancel">
+                    <template name="well_item">
+                        <div class="well-item" p:on-mouseenter="well_hover_begin,well_select_drag_register" p:on-mouseleave="well_hover_end" p:on-mousedown="well_select_drag_begin" p:on-mouseup="well_select_drag_end">
+                            <div p:on-mouseenter="well_hover_begin" p:on-mouseleave="well_hover_end"></div>
+                        </div>
+                    </template>
+                </div>
             </div>
 
             <style>
@@ -287,10 +498,10 @@
                 <script>
                     p.add_channel_config_item=function(event){
                         let channel_config_item_template=p.templates["channel_config_item"]
-                        let channel_config_item=channel_config_item_template.content.cloneNode(true)
+                        let channel_config_item=channel_config_item_template.cloneNode(true)
 
-                        let channel_container=event.target.parentNode
-                        channel_container.insertBefore(channel_config_item,event.target)
+                        let channel_container=event.currentTarget.parentNode
+                        channel_container.insertBefore(channel_config_item,event.currentTarget)
                     }
                     p.init_lightsource_dropdown=function(element){
                         const light_sources=[
@@ -367,9 +578,42 @@
             </div>
 
             <div class="tab-body" tab-name="review" id="whatasdverasd">
+                <h2>config summary:</h2>
+                <ul>
+                    <li>trigger: hardware</li>
+                    <li>bit depth: 12bit</li>
+                    <li>90 wells selected</li>
+                    <li>positions per well: 7-9</li>
+                    <li>focus system: per-position laser autofocus</li>
+                    <li>base path: /home</li>
+                    <li>
+                        <b>imaging channels:</b>
+                        <ul>
+                            <li>Nucleus (hover over me to see all the details)</li>
+                            <li>ER (hover over me to see all the details)</li>
+                            <li>Golgi (hover over me to see all the details)</li>
+                        </ul>
+                    </li>
+                    <li>final output path: /home/spec5k/GHFA83F2-KUH</li>
+                    <li>(max.) storage used for output: 123GB</li>
+                    <li>estimated imaging time: 1h</li>
+                </ul>
             </div>
 
             <div class="tab-body" tab-name="run" id="whaasdastverasd">
+                <button>RUN (the acquisition)</button>
+                <div>
+                    <p>54 / 90 images done (61%)</p>
+                    <p>running for 34m 54s (since 2023-10-24 13:11:43)</p>
+                    <p>estimate time left 23m 43s (done by 2023-10-24 14:12:39)</p>
+                    <p>64GB used so far (58% of max.)</p>
+                </div>
+                <div>
+                    last image that was taken is shown here
+                </div>
+                <div>
+                    histogram of last image here
+                </div>
             </div>
         </div>
 
@@ -385,9 +629,6 @@
                 let mutation_observer=new MutationObserver((mutations)=>{
                     mutations.forEach((mutation)=>{
                         if(mutation.type=="childList"){
-                            if(mutation.addedNodes.length>0){
-                                console.log("added something to the dom")
-                            }
                             for(let node of mutation.addedNodes){
                                 p.init(node,true)
                             }
