@@ -99,7 +99,12 @@ var p={
             }
             for(element of subtree_with_input_tag){
                 function get_num_decmial_digits(v){
-                    return v.toString().split(".").find((val,index,l)=>index==l.length-1).length
+                    let split_at_decimal_sep=v.toString().split(".")
+                    if(split_at_decimal_sep.length==1){
+                        return 0
+                    }
+
+                    return split_at_decimal_sep[split_at_decimal_sep.length-1]
                 }
 
                 let input_type=element.getAttribute("type")
