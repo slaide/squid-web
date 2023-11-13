@@ -44,7 +44,8 @@
 }
 
 .tab-body{
-    height: 100%;
+    padding-top: 0.5em;
+    height: calc(100% - 0.5em);
     border-top:1px solid black;
 }
 .tab-body.inactive{

@@ -23,7 +23,50 @@ var p={
             resize_callback(entry.target)
         }
     }),
-    init(subtree=document,include_root=false){
+    tooltip_begin(event){
+        let tooltip_el=event.currentTarget.tooltip_element
+        if(!tooltip_el){
+            tooltip_el=this.templates.tooltip.cloneNode(true).children[0]
+
+            let tooltip_text=event.currentTarget.getAttribute("p:tooltip")
+            // if tooltip references a whole element, use its innerHTML as tooltip text, and remove that element from its parent
+            if(tooltip_text.startsWith("#")){
+                let tooltip_text_element=document.querySelector(tooltip_text)
+                tooltip_el.innerHTML=tooltip_text_element.innerHTML
+
+                tooltip_text_element.parentElement.removeChild(tooltip_text_element)
+                tooltip_text_element.classList.add("processed")
+            }else{
+                tooltip_el.innerHTML=tooltip_text
+            }
+
+            tooltip_el.element_anker=event.currentTarget
+            event.currentTarget.tooltip_element=tooltip_el
+        }
+
+        if(this.active_tooltip){
+            this.tooltip_cancel(this.active_tooltip)
+        }
+
+        document.body.appendChild(tooltip_el)
+
+        this.active_tooltip=tooltip_el
+    },
+    tooltip_end(event){
+        let tooltip_el=event.currentTarget.tooltip_element
+        tooltip_el.visibility_timer=setTimeout((() => {
+            this.tooltip_cancel(tooltip_el)
+        }).bind(this), 1000);
+    },
+    tooltip_cancel(tooltip_el){
+        clearTimeout(tooltip_el.visibility_timer)
+        tooltip_el.visibility_timer=null
+
+        tooltip_el.parentElement.removeChild(tooltip_el)
+
+        this.active_tooltip=null
+    },
+    init:function(subtree=document,include_root=false){
         if(subtree.querySelectorAll){
             // get list of elements to process
             let subtree_with_data_class=[]
@@ -46,6 +89,12 @@ var p={
                             init_func(element)
                         }
                     }
+                }
+
+                let tooltip_text=element.getAttribute("p:tooltip")
+                if(tooltip_text){
+                    element.addEventListener("mouseenter",this.tooltip_begin)
+                    element.addEventListener("mouseleave",this.tooltip_end)
                 }
 
                 let init_vis_func_name_list=element.getAttribute("p:init-vis")
@@ -194,5 +243,10 @@ var p={
     }
 }
 document.addEventListener("DOMContentLoaded",function(){
+    for(let key in p){
+        if(typeof p[key] === 'function'){
+            p[key]=p[key].bind(p)
+        }
+    }
     p.init()
 })
