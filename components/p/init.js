@@ -15,6 +15,14 @@ var p={
             }
         });
     }),
+    oberserver_resize:new ResizeObserver((entries) => {
+        for(let entry of entries){
+            let resize_callback_name=entry.target.getAttribute("p:on-resize")
+            let resize_callback=p[resize_callback_name].bind(p)
+
+            resize_callback(entry.target)
+        }
+    }),
     init(subtree=document,include_root=false){
         if(subtree.querySelectorAll){
             // get list of elements to process
@@ -46,12 +54,26 @@ var p={
                 for(attribute of element.attributes){
                     if(attribute.name.startsWith("p:on-")){
                         let event_name=attribute.name.replace("p:on-","")
-                        let event_func_name=attribute.value
-
-                        element.addEventListener(event_name,function(event){
+                        
+                        let event_func_name_list=attribute.value.split(",")
+                        for(let event_func_name of event_func_name_list){
                             p[event_func_name]=p[event_func_name].bind(p)
-                            p[event_func_name](event)
-                        })
+
+                            if(event_name=="resize"){
+                                if(false){
+                                    p.oberserver_resize.observe(element)
+                                }else{
+                                    window.addEventListener("resize",function(event){
+                                        p[event_func_name](element)
+                                    })
+                                }
+                                continue
+                            }
+
+                            element.addEventListener(event_name,function(event){
+                                p[event_func_name](event)
+                            })
+                        }
                     }
                 }
             }
@@ -137,12 +159,10 @@ var p={
             for(let template of subtree.querySelectorAll("template")){
                 // remove template from DOM
                 template.parentElement.removeChild(template)
-                
+
                 // save for later use
                 let template_name=template.getAttribute("name")
-                this.templates[template_name]=template
-
-                console.log(template)
+                this.templates[template_name]=template.content
             }
         }
 
