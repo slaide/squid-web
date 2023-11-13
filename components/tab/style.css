@@ -24,24 +24,29 @@
     border:1px solid black;
     border-bottom:none;
     border-radius:5px 5px 0 0;
-    background-color:lightgray;
-    cursor:pointer;
+    background-color:var(--idle-color);
 
     user-select: none;
 }
+.tab-header:not(.selected){
+    cursor:pointer;
+}
+.tab-header:hover:not(.selected){
+    background-color: #525252;
+    color: white;
+}
+
 .tab-header.selected:before{
     content: "> ";
 }
 .tab-header.selected{
-    background-color: lightblue;
+    background-color: var(--active-color);
 }
-.tab-header:hover{
-    background-color: #525252;
-    color: white;
+
+.tab-body{
+    height: 100%;
+    border-top:1px solid black;
 }
 .tab-body.inactive{
     display:none;
-}
-.tab-body{
-    height: 100%;
 }
