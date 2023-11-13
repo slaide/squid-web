@@ -77,151 +77,248 @@
                     display:grid;
                     grid-template-columns: auto auto;
                 }
+                input[type="text"]:not(.invalid){
+                    border:0.2em solid transparent;
+                    border-radius:0.3em;
+                }
+                input[type="text"].invalid{
+                    border:0.2em solid red;
+                    border-radius:0.3em;
+                    background-color:rgb(255, 210, 210);
+                }
             </style>
             <div class="tab-body" tab-name="basic setup" id="basic-setup-tab">
-                <label>camera trigger</label>
+                <label for="basic-config-camera-trigger">camera trigger</label>
                 <script>
+                    p.camera_triggers=[
+                        {
+                            'name':'Hardware',
+                            'handle':'hardware'
+                        },
+                        {
+                            'name':'Software',
+                            'handle':'software'
+                        }
+                    ]
+                    p.get_camera_trigger=function(handle){
+                        for(let camera_trigger of this.camera_triggers){
+                            if(camera_trigger.handle==handle){
+                                return camera_trigger
+                            }
+                        }
+                        return null
+                    }
+                    p.set_camera_trigger=function(event){
+                        this.config.camera_trigger=this.get_camera_trigger(event.currentTarget.value)
+                    }
                     p.init_camera_trigger_dropdown=function(element){
-                        const camera_triggers=[
-                            {
-                                'name':'Hardware',
-                                'handle':'hardware'
-                            },
-                            {
-                                'name':'Software',
-                                'handle':'software'
-                            }
-                        ]
-
-                        p.create_dropdown(element,camera_triggers)
+                        this.create_dropdown(element,this.camera_triggers)
+                        this.set_camera_trigger({currentTarget:element})
                     }
                 </script>
-                <select class="data" p:init="init_camera_trigger_dropdown"></select>
+                <select class="data" id="basic-config-camera-trigger" p:init="init_camera_trigger_dropdown" p:on-change="set_camera_trigger"></select>
 
-                <label>pixel depth</label>
+                <label for="basic-config-pixel-depth">pixel depth</label>
                 <script>
+                    p.pixel_depths=[
+                        {
+                            'name':'8 Bit (Mono)',
+                            'handle':'mono8'
+                        },
+                        {
+                            'name':'12 Bit (Mono)',
+                            'handle':'mono12'
+                        }
+                    ]
+                    p.get_pixel_depth=function(handle){
+                        for(let pixel_depth of this.pixel_depths){
+                            if(pixel_depth.handle==handle){
+                                return pixel_depth
+                            }
+                        }
+                        return null
+                    }
                     p.init_pixel_depth_dropdown=function(element){
-                        const pixel_depths=[
-                            {
-                                'name':'8 Bit (Mono)',
-                                'handle':'mono8'
-                            },
-                            {
-                                'name':'12 Bit (Mono)',
-                                'handle':'mono12'
-                            }
-                        ]
-
-                        p.create_dropdown(element,pixel_depths)
+                        this.create_dropdown(element,this.pixel_depths)
+                        this.set_pixel_depth({currentTarget:element})
+                    }
+                    p.set_pixel_depth=function(event){
+                        this.config.pixel_depth=this.get_pixel_depth(event.currentTarget.value)
                     }
                 </script>
-                <select class="data" p:init="init_pixel_depth_dropdown"></select>
+                <select class="data" id="basic-config-pixel-depth" p:init="init_pixel_depth_dropdown" p:on-change="set_pixel_depth"></select>
 
-                <label>base path</label>
+                <label for="basic-config-base-path">base path</label>
                 <script>
+                    p.init_base_path=function(element){
+                        this.set_base_path({currentTarget:element})
+                    }
                     p.set_base_path=function(event){
-                        let event_target=event.target
-                        let value=event_target.value
-
-                        this.config.base_path=value
+                        let value=event.currentTarget.value
+                        if(value){
+                            this.config.base_path=value
+                        }
+                        this.check_validity(event)
+                    }
+                    p.check_validity=function(event){
+                        let value=event.currentTarget.value
+                        if(value.length<20){
+                            event.currentTarget.setCustomValidity("Please enter a valid path")
+                            event.currentTarget.classList.add("invalid")
+                        }else{
+                            event.currentTarget.setCustomValidity("")
+                            event.currentTarget.classList.remove("invalid")
+                        }
+                        event.currentTarget.reportValidity()
                     }
                 </script>
-                <input type="text" placeholder="Please enter the Base Path" class="data" p:on-input="set_base_path"/>
+                <input type="text" id="basic-config-base-path" placeholder="Please enter the Base Path" class="data" p:init="init_base_path" p:on-input="set_base_path,check_validity" p:on-mouseover,focus="check_validity"/>
 
-                <label>project name</label>
+                <label for="basic-config-project-name">project name</label>
                 <script>
+                    p.init_project_name=function(element){
+                        this.set_project_name({currentTarget:element})
+                    }
                     p.set_project_name=function(event){
-                        let event_target=event.target
-                        let value=event_target.value
-
-                        this.config.project_name=value
+                        let value=event.currentTarget.value
+                        if(value){
+                            this.config.project_name=value
+                        }
+                        this.check_validity(event)
                     }
                 </script>
-                <input type="text" placeholder="Please enter the Project Name" class="data" p:on-input="set_project_name"/>
-                <label>plate name</label>
+                <input type="text" id="basic-config-project-name" placeholder="Please enter the Project Name" class="data" p:init="init_project_name" p:on-input="set_project_name" p:on-mouseover,focus="check_validity"/>
+
+                <label for="basic-config-plate-name">plate name</label>
                 <script>
+                    p.init_plate_name=function(element){
+                        this.set_plate_name({currentTarget:element})
+                    }
                     p.set_plate_name=function(event){
-                        let event_target=event.target
-                        let value=event_target.value
-
-                        this.config.plate_name=value
+                        let value=event.currentTarget.value
+                        if(value){
+                            this.config.plate_name=value
+                        }
+                        this.check_validity(event)
                     }
                 </script>
-                <input type="text" placeholder="Please enter the Plate Name" class="data" p:on-input="set_plate_name"/>
-                <label>cell line</label>
+                <input type="text" id="basic-config-plate-name" placeholder="Please enter the Plate Name" class="data" p:init="init_plate_name" p:on-input="set_plate_name" p:on-mouseover,focus="check_validity"/>
+
+                <label for="basic-config-cell-line">cell line</label>
                 <script>
+                    p.init_cell_line=function(element){
+                        this.set_cell_line({currentTarget:element})
+                    }
                     p.set_cell_line=function(event){
-                        let event_target=event.target
-                        let value=event_target.value
-
-                        this.config.cell_line=value
+                        let value=event.currentTarget.value
+                        if(value){
+                            this.config.cell_line=value
+                        }
+                        this.check_validity(event)
                     }
                 </script>
-                <input type="text" placeholder="Please enter the Cell Line" class="data" p:on-input="set_cell_line"/>
+                <input type="text" id="basic-config-cell-line" placeholder="Please enter the Cell Line" class="data" p:init="init_cell_line" p:on-input="set_cell_line" p:on-mouseover,focus="check_validity"/>
 
-                <label>image format</label>
+                <label for="basic-config-image-format">image format</label>
                 <script>
+                    p.image_formats=[
+                        {
+                            'name':'TIFF',
+                            'handle':'tiff'
+                        },
+                        {
+                            'name':'TIFF (compressed)',
+                            'handle':'tiffcompressed'
+                        }
+                    ]
+                    p.get_image_format=function(handle){
+                        for(let image_format of this.image_formats){
+                            if(image_format.handle==handle){
+                                return image_format
+                            }
+                        }
+                        return null
+                    }
                     p.init_image_format_dropdown=function(element){
-                        const image_formats=[
-                            {
-                                'name':'TIFF',
-                                'handle':'tiff'
-                            },
-                            {
-                                'name':'TIFF (compressed)',
-                                'handle':'tiffcompressed'
-                            }
-                        ]
-                        p.create_dropdown(element,image_formats)
+                        this.create_dropdown(element,this.image_formats)
+                        this.set_image_format({currentTarget:element})
+                    }
+                    p.set_image_format=function(event){
+                        this.config.image_format=this.get_image_format(event.currentTarget.value)
                     }
                 </script>
-                <select class="data" p:init="init_image_format_dropdown"></select>
+                <select class="data" id="basic-config-image-format" p:init="init_image_format_dropdown" p:on-change="set_image_format"></select>
 
-                <label>plate type</label>
+                <label for="basic-config-plate-type">plate type</label>
                 <script>
+                    p.plate_types=[
+                        {
+                            'name':'Generic 96',
+                            'handle':'ge96',
+                            'well_count':96,
+                            'well_count_x':12,
+                            'well_count_y':8
+                        },
+                        {
+                            'name':'Generic 384',
+                            'handle':'ge384',
+                            'well_count':384,
+                            'well_count_x':24,
+                            'well_count_y':16
+                        }
+                    ]
+                    p.get_plate_type=function(handle){
+                        for(let plate_type of this.plate_types){
+                            if(plate_type.handle==handle){
+                                return plate_type
+                            }
+                        }
+                        return null
+                    }
                     p.init_plate_type_dropdown=function(element){
-                        const plate_types=[
-                            {
-                                'name':'Generic 96',
-                                'handle':'ge96',
-                                'well_count':96,
-                                'well_count_x':12,
-                                'well_count_y':8
-                            },
-                            {
-                                'name':'Generic 384',
-                                'handle':'ge384',
-                                'well_count':384,
-                                'well_count_x':24,
-                                'well_count_y':16
-                            }
-                        ]
-                        p.create_dropdown(element,plate_types)
-                    }
-                </script>
-                <select class="data" p:init="init_plate_type_dropdown"></select>
+                        this.create_dropdown(element,this.plate_types)
 
-                <label>objective</label>
-                <script>
-                    p.init_objective_dropdown=function(element){
-                        const objectives=[
-                            {
-                                'name':'4x (Olympus)',
-                                'handle':'olympus4x'
-                            },
-                            {
-                                'name':'10x (Olympus)',
-                                'handle':'olympus10x'
-                            },
-                            {
-                                'name':'20x (Olympus)',
-                                'handle':'olympus20x'
-                            }
-                        ]
-                        p.create_dropdown(element,objectives)
+                        this.set_wellplate_type({currentTarget:element})
+                    }
+                    p.set_wellplate_type=function(event){
+                        this.config.plate_type=this.get_plate_type(event.currentTarget.value)
                     }
                 </script>
-                <select class="data" p:init="init_objective_dropdown"></select>
+                <select class="data" id="basic-config-plate-type" p:init="init_plate_type_dropdown" p:on-change="set_wellplate_type"></select>
+
+                <label for="basic-config-objective">objective</label>
+                <script>
+                    p.objectives=[
+                        {
+                            'name':'4x (Olympus)',
+                            'handle':'olympus4x'
+                        },
+                        {
+                            'name':'10x (Olympus)',
+                            'handle':'olympus10x'
+                        },
+                        {
+                            'name':'20x (Olympus)',
+                            'handle':'olympus20x'
+                        }
+                    ]
+                    p.get_objective=function(handle){
+                        for(let objective of this.objectives){
+                            if(objective.handle==handle){
+                                return objective
+                            }
+                        }
+                        return null
+                    }
+                    p.init_objective_dropdown=function(element){
+                        this.create_dropdown(element,this.objectives)
+                        this.set_objective({currentTarget:element})
+                    }
+                    p.set_objective=function(event){
+                        this.config.objective=this.get_objective(event.currentTarget.value)
+                    }
+                </script>
+                <select class="data" id="basic-config-objective" p:init="init_objective_dropdown" p:on-change="set_objective"></select>
 
                 <button>Load Settings</button>
             </div>
@@ -281,8 +378,8 @@
                 </style>
                 <script>
                     p.init_well_selection=function(element){
-                        let well_count_x=12+1
-                        let well_count_y=8+1
+                        let well_count_x=this.config.plate_type.well_count_x+1
+                        let well_count_y=this.config.plate_type.well_count_y+1
 
                         element.style.setProperty("--num-columns",well_count_x)
                         element.style.setProperty("--num-rows",well_count_y)
@@ -472,8 +569,8 @@
                 </script>
                 <div id="well-selection-container" class="data" p:init-vis="init_well_selection" p:on-resize="init_well_selection" p:on-mouseleave="well_select_drag_cancel">
                     <template name="well_item">
-                        <div class="well-item" p:on-mouseenter="well_hover_begin,well_select_drag_register" p:on-mouseleave="well_hover_end" p:on-mousedown="well_select_drag_begin" p:on-mouseup="well_select_drag_end">
-                            <div p:on-mouseenter="well_hover_begin" p:on-mouseleave="well_hover_end"></div>
+                        <div class="well-item" p:on-mouseenter="well_hover_begin,well_select_drag_register" p:on-mouseleave="well_hover_end" p:on-mousedown="well_select_drag_begin" p:on-mouseup="well_select_drag_end,well_hover_begin">
+                            <div><!-- row/column label goes here --></div>
                         </div>
                     </template>
                 </div>
