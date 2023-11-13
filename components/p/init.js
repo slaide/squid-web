@@ -36,43 +36,54 @@ var p={
 
             // process elements
             for(let element of subtree_with_data_class){
-                let init_func_name=element.getAttribute("p:init")
-                if(init_func_name){
-                    p[init_func_name]=p[init_func_name].bind(p)
+                let init_func_name_list=element.getAttribute("p:init")
+                if(init_func_name_list){
+                    for(let init_func_name of init_func_name_list.split(",")){
+                        if(init_func_name){
+                            p[init_func_name]=p[init_func_name].bind(p)
 
-                    let init_func=p[init_func_name]
-                    init_func(element)
+                            let init_func=p[init_func_name]
+                            init_func(element)
+                        }
+                    }
                 }
 
-                let init_vis_func_name=element.getAttribute("p:init-vis")
-                if(init_vis_func_name){
-                    p[init_vis_func_name]=p[init_vis_func_name].bind(p)
+                let init_vis_func_name_list=element.getAttribute("p:init-vis")
+                if(init_vis_func_name_list){
+                    for(let init_func_name of init_vis_func_name_list.split(",")){
+                        if(init_func_name){
+                            p[init_func_name]=p[init_func_name].bind(p)
 
-                    p.observer_first_draw.observe(element);
+                            p.observer_first_draw.observe(element);
+                        }
+                    }
                 }
 
                 for(attribute of element.attributes){
                     if(attribute.name.startsWith("p:on-")){
-                        let event_name=attribute.name.replace("p:on-","")
+                        let event_name_list=attribute.name.replace("p:on-","")
                         
                         let event_func_name_list=attribute.value.split(",")
-                        for(let event_func_name of event_func_name_list){
-                            p[event_func_name]=p[event_func_name].bind(p)
+                        
+                        for(let event_name of event_name_list.split(",")){
+                            for(let event_func_name of event_func_name_list){
+                                p[event_func_name]=p[event_func_name].bind(p)
 
-                            if(event_name=="resize"){
-                                if(false){
-                                    p.oberserver_resize.observe(element)
-                                }else{
-                                    window.addEventListener("resize",function(event){
-                                        p[event_func_name](element)
-                                    })
+                                if(event_name=="resize"){
+                                    if(false){
+                                        p.oberserver_resize.observe(element)
+                                    }else{
+                                        window.addEventListener("resize",function(event){
+                                            p[event_func_name](element)
+                                        })
+                                    }
+                                    continue
                                 }
-                                continue
-                            }
 
-                            element.addEventListener(event_name,function(event){
-                                p[event_func_name](event)
-                            })
+                                element.addEventListener(event_name,function(event){
+                                    p[event_func_name](event)
+                                })
+                            }
                         }
                     }
                 }
