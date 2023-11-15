@@ -1,10 +1,10 @@
-var p={
+let p={
     config:{},
     templates:{},
     observer_first_draw:new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             // If the element is intersecting with the viewport (i.e., it's visible)
-            if (entry.isIntersecting) {
+            if(entry.isIntersecting) {
                 let element=entry.target
 
                 let init_vis_func_name=element.getAttribute("p:init-vis")
@@ -66,7 +66,7 @@ var p={
 
         this.active_tooltip=null
     },
-    init:function(subtree=document,include_root=false){
+    init(subtree=document,include_root=false){
         if(subtree.querySelectorAll){
             // get list of elements to process
             let subtree_with_data_class=[]
@@ -100,15 +100,17 @@ var p={
                 let init_vis_func_name_list=element.getAttribute("p:init-vis")
                 if(init_vis_func_name_list){
                     for(let init_func_name of init_vis_func_name_list.split(",")){
-                        if(init_func_name){
-                            p[init_func_name]=p[init_func_name].bind(p)
-
-                            p.observer_first_draw.observe(element);
+                        if(init_func_name.length==0){
+                            continue
                         }
+                        
+                        p[init_func_name]=p[init_func_name].bind(p)
+
+                        p.observer_first_draw.observe(element);
                     }
                 }
 
-                for(attribute of element.attributes){
+                for(let attribute of element.attributes){
                     if(attribute.name.startsWith("p:on-")){
                         let event_name_list=attribute.name.replace("p:on-","")
                         
@@ -116,6 +118,14 @@ var p={
                         
                         for(let event_name of event_name_list.split(",")){
                             for(let event_func_name of event_func_name_list){
+                                if(event_func_name.length==0){
+                                    continue
+                                }
+
+                                if(!p[event_func_name]){
+                                    window.alert("event function not found: "+event_func_name)
+                                    continue
+                                }
                                 p[event_func_name]=p[event_func_name].bind(p)
 
                                 if(event_name=="resize"){
@@ -146,7 +156,7 @@ var p={
             if(include_root){
                 subtree_with_input_tag.push(subtree)
             }
-            for(element of subtree_with_input_tag){
+            for(let element of subtree_with_input_tag){
                 function get_num_decmial_digits(v){
                     let split_at_decimal_sep=v.toString().split(".")
                     if(split_at_decimal_sep.length==1){
@@ -158,7 +168,7 @@ var p={
 
                 let input_type=element.getAttribute("type")
                 if(input_type=="number"){
-                    element.addEventListener("input",function(event){
+                    function number_on_input(event){
                         let event_target=event.target
 
                         let min_value=parseFloat(event_target.getAttribute("min"))
@@ -185,13 +195,15 @@ var p={
                             }
                             event_target.value=current_value
                         }
-                    })
+                    }
+                    element.addEventListener("input",number_on_input)
+
                     let wheel_adjust=element.getAttribute("wheel-adjust")
                     if(wheel_adjust==null || wheel_adjust==true || wheel_adjust=="true"){
-                        element.addEventListener("wheel",function(event){
+                        function number_on_wheel(event){
                             event.preventDefault()
 
-                            let event_target=event.target
+                            let event_target=event.currentTarget
 
                             let min_value=parseFloat(event_target.getAttribute("min"))
                             let max_value=parseFloat(event_target.getAttribute("max"))
@@ -215,7 +227,15 @@ var p={
 
                             let num_decmial_digits=get_num_decmial_digits(step_value)
                             event_target.value=current_value.toFixed(num_decmial_digits)
-                        })
+
+                            // emit onchange event on same object
+                            let on_change_event=new Event("change",{
+                                bubbles:event.bubbles,
+                                cancelable:event.cancelable,
+                            })
+                            event_target.dispatchEvent(on_change_event)
+                        }
+                        element.addEventListener("wheel", number_on_wheel, {passive: false})
                     }
                 }
             }
@@ -234,7 +254,45 @@ var p={
         p.init_done=true
     },
     create_dropdown(element,value_list){
-        for(value of value_list){
+        while(element.firstChild){
+            element.removeChild(element.firstChild)
+        }
+
+        let categories={}
+        let uncategorized_values=[]
+
+        // create list of values, grouped by category
+        // create separate list for values without category
+        for(let value of value_list){
+            if(!value.category){
+                uncategorized_values.push(value)
+                continue
+            }
+
+            if(!categories[value.category]){
+                categories[value.category]=[]
+            }
+
+            categories[value.category].push(value)
+        }
+
+        // put elements with category inside optgroups
+        for(let category_name in categories){
+            let category=categories[category_name]
+
+            let optgroup=document.createElement("optgroup")
+            optgroup.label=category_name
+            element.appendChild(optgroup)
+
+            for(let value of category){
+                let option=document.createElement("option")
+                option.value=value.handle
+                option.innerText=value.name
+                optgroup.appendChild(option)
+            }
+        }
+        // put elements without category directly inside select
+        for(let value of uncategorized_values){
             let option=document.createElement("option")
             option.value=value.handle
             option.innerText=value.name
