@@ -14,9 +14,10 @@
                 --idle-color:rgb(236, 236, 236);
                 --active-color:lightblue;
             }
-            input{
+            input,select{
                 width:auto;
                 height:1.5em;
+                border-bottom:1px solid grey;
             }
             label,button,select{
                 user-select: none;
@@ -80,9 +81,17 @@
         </style>
         <div id="main-content" class="tab-container" >
             <style>
-                #basic-setup-tab:not(.inactive){
+                #basic-setup-tab{
                     display:grid;
-                    grid-template-columns: auto auto;
+                    grid-template-columns: 1fr 2fr;
+
+                    position:absolute;
+                    left:50%;
+                    top:50%;
+                    transform:translateX(-50%) translateY(-50%);
+
+                    height:50%;
+                    width:40%;
                 }
                 input[type="text"]:not(.invalid){
                     border:0.2em solid transparent;
@@ -93,241 +102,311 @@
                     border-radius:0.3em;
                     background-color:rgb(255, 210, 210);
                 }
+                #basic-config-load-settings-button{
+                    grid-column: span 2;
+                }
             </style>
-            <div class="tab-body" tab-name="basic setup" id="basic-setup-tab">
-                <label for="basic-config-camera-trigger">camera trigger</label>
-                <script>
-                    p.camera_triggers=[
-                        {
-                            'name':'Hardware',
-                            'handle':'hardware'
-                        },
-                        {
-                            'name':'Software',
-                            'handle':'software'
-                        }
-                    ]
-                    p.get_camera_trigger=function(handle){
-                        for(let camera_trigger of this.camera_triggers){
-                            if(camera_trigger.handle==handle){
-                                return camera_trigger
+            <div class="tab-body" tab-name="basic setup">
+                <div id="basic-setup-tab">
+                    <!-- input validation function for project/plate name -->
+                    <script>
+                        p.check_validity=function(event,highlight_invalid=true){
+                            let value=event.currentTarget.value
+
+                            let value_is_valid=true
+                            let reason_invalid=null
+
+                            if(value_is_valid){
+                                if(value.length==0){
+                                    value_is_valid=false
+                                    reason_invalid="Please enter a value"
+                                }
+                            }
+
+                            if(value_is_valid){
+                                for(let c of value){
+                                    if(c==" "){
+                                        value_is_valid=false
+                                        reason_invalid="Please do not use spaces"
+                                    }else if(c=="\t"){
+                                        value_is_valid=false
+                                        reason_invalid="Please do not use tab characters"
+                                    }else if(c=="\n"){
+                                        value_is_valid=false
+                                        reason_invalid="Please do not use newline characters"
+                                    }else if(/[^a-zA-Z0-9-_]/.test(c)){
+                                        value_is_valid=false
+                                        reason_invalid="Please enter a valid name.\nThe only allowed characters are a-z, A-Z, 0-9, - (dash), _ (underscore) and . (dot)"
+                                    }
+
+                                    if(!value_is_valid){
+                                        break
+                                    }
+                                }
+                            }
+
+                            if(!value_is_valid){
+                                event.currentTarget.setCustomValidity(reason_invalid)
+                                event.currentTarget.classList.add("invalid")
+                            }else{
+                                event.currentTarget.setCustomValidity("")
+                                event.currentTarget.classList.remove("invalid")
+                            }
+
+                            if(highlight_invalid){
+                                event.currentTarget.reportValidity()
                             }
                         }
-                        return null
-                    }
-                    p.set_camera_trigger=function(event){
-                        this.config.camera_trigger=this.get_camera_trigger(event.currentTarget.value)
-                    }
-                    p.init_camera_trigger_dropdown=function(element){
-                        this.create_dropdown(element,this.camera_triggers)
-                        this.set_camera_trigger({currentTarget:element})
-                    }
-                </script>
-                <select class="data" id="basic-config-camera-trigger" p:init="init_camera_trigger_dropdown" p:on-change="set_camera_trigger"></select>
-
-                <label for="basic-config-pixel-depth">pixel depth</label>
-                <script>
-                    p.pixel_depths=[
-                        {
-                            'name':'8 Bit (Mono)',
-                            'handle':'mono8'
-                        },
-                        {
-                            'name':'12 Bit (Mono)',
-                            'handle':'mono12'
+                    </script>
+                    <label class="data" p:tooltip="Name of the project that this plate is used for. Be aware of upper/lower case!" for="basic-config-project-name">Project Name</label>
+                    <script>
+                        p.init_project_name=function(element){
+                            this.set_project_name({currentTarget:element},false)
                         }
-                    ]
-                    p.get_pixel_depth=function(handle){
-                        for(let pixel_depth of this.pixel_depths){
-                            if(pixel_depth.handle==handle){
-                                return pixel_depth
+                        p.set_project_name=function(event,highlight_invalid=true){
+                            let value=event.currentTarget.value
+                            if(value){
+                                this.config.project_name=value
                             }
+                            this.check_validity(event,highlight_invalid)
                         }
-                        return null
-                    }
-                    p.init_pixel_depth_dropdown=function(element){
-                        this.create_dropdown(element,this.pixel_depths)
-                        this.set_pixel_depth({currentTarget:element})
-                    }
-                    p.set_pixel_depth=function(event){
-                        this.config.pixel_depth=this.get_pixel_depth(event.currentTarget.value)
-                    }
-                </script>
-                <select class="data" id="basic-config-pixel-depth" p:init="init_pixel_depth_dropdown" p:on-change="set_pixel_depth"></select>
+                    </script>
+                    <input type="text" id="basic-config-project-name" placeholder="Please enter the Project Name" class="data" p:init="init_project_name" p:on-input="set_project_name" p:on-mouseover,focus="check_validity"/>
 
-                <label for="basic-config-base-path">base path</label>
-                <script>
-                    p.init_base_path=function(element){
-                        this.set_base_path({currentTarget:element})
-                    }
-                    p.set_base_path=function(event){
-                        let value=event.currentTarget.value
-                        if(value){
-                            this.config.base_path=value
+                    <label class="data" p:tooltip="Name of the Well Plate. If the plate has a sticker with an ID, use that." for="basic-config-plate-name">Well Plate Name</label>
+                    <script>
+                        p.init_plate_name=function(element){
+                            this.set_plate_name({currentTarget:element},false)
                         }
-                        this.check_validity(event)
-                    }
-                    p.check_validity=function(event){
-                        let value=event.currentTarget.value
-                        if(value.length<20){
-                            event.currentTarget.setCustomValidity("Please enter a valid path")
-                            event.currentTarget.classList.add("invalid")
-                        }else{
-                            event.currentTarget.setCustomValidity("")
-                            event.currentTarget.classList.remove("invalid")
-                        }
-                        event.currentTarget.reportValidity()
-                    }
-                </script>
-                <input type="text" id="basic-config-base-path" placeholder="Please enter the Base Path" class="data" p:init="init_base_path" p:on-input="set_base_path,check_validity" p:on-mouseover,focus="check_validity"/>
-
-                <label for="basic-config-project-name">project name</label>
-                <script>
-                    p.init_project_name=function(element){
-                        this.set_project_name({currentTarget:element})
-                    }
-                    p.set_project_name=function(event){
-                        let value=event.currentTarget.value
-                        if(value){
-                            this.config.project_name=value
-                        }
-                        this.check_validity(event)
-                    }
-                </script>
-                <input type="text" id="basic-config-project-name" placeholder="Please enter the Project Name" class="data" p:init="init_project_name" p:on-input="set_project_name" p:on-mouseover,focus="check_validity"/>
-
-                <label for="basic-config-plate-name">plate name</label>
-                <script>
-                    p.init_plate_name=function(element){
-                        this.set_plate_name({currentTarget:element})
-                    }
-                    p.set_plate_name=function(event){
-                        let value=event.currentTarget.value
-                        if(value){
-                            this.config.plate_name=value
-                        }
-                        this.check_validity(event)
-                    }
-                </script>
-                <input type="text" id="basic-config-plate-name" placeholder="Please enter the Plate Name" class="data" p:init="init_plate_name" p:on-input="set_plate_name" p:on-mouseover,focus="check_validity"/>
-
-                <label for="basic-config-cell-line">cell line</label>
-                <script>
-                    p.init_cell_line=function(element){
-                        this.set_cell_line({currentTarget:element})
-                    }
-                    p.set_cell_line=function(event){
-                        let value=event.currentTarget.value
-                        if(value){
-                            this.config.cell_line=value
-                        }
-                        this.check_validity(event)
-                    }
-                </script>
-                <input type="text" id="basic-config-cell-line" placeholder="Please enter the Cell Line" class="data" p:init="init_cell_line" p:on-input="set_cell_line" p:on-mouseover,focus="check_validity"/>
-
-                <label for="basic-config-image-format">image format</label>
-                <script>
-                    p.image_formats=[
-                        {
-                            'name':'TIFF',
-                            'handle':'tiff'
-                        },
-                        {
-                            'name':'TIFF (compressed)',
-                            'handle':'tiffcompressed'
-                        }
-                    ]
-                    p.get_image_format=function(handle){
-                        for(let image_format of this.image_formats){
-                            if(image_format.handle==handle){
-                                return image_format
+                        p.set_plate_name=function(event,highlight_invalid=true){
+                            let value=event.currentTarget.value
+                            if(value){
+                                this.config.plate_name=value
                             }
+                            this.check_validity(event,highlight_invalid)
                         }
-                        return null
-                    }
-                    p.init_image_format_dropdown=function(element){
-                        this.create_dropdown(element,this.image_formats)
-                        this.set_image_format({currentTarget:element})
-                    }
-                    p.set_image_format=function(event){
-                        this.config.image_format=this.get_image_format(event.currentTarget.value)
-                    }
-                </script>
-                <select class="data" id="basic-config-image-format" p:init="init_image_format_dropdown" p:on-change="set_image_format"></select>
+                    </script>
+                    <input type="text" id="basic-config-plate-name" placeholder="Please enter the Plate Name" class="data" p:init="init_plate_name" p:on-input="set_plate_name" p:on-mouseover,focus="check_validity"/>
 
-                <label for="basic-config-plate-type">plate type</label>
-                <script>
-                    p.plate_types=[
-                        {
-                            'name':'Generic 96',
-                            'handle':'ge96',
-                            'well_count':96,
-                            'well_count_x':12,
-                            'well_count_y':8
-                        },
-                        {
-                            'name':'Generic 384',
-                            'handle':'ge384',
-                            'well_count':384,
-                            'well_count_x':24,
-                            'well_count_y':16
-                        }
-                    ]
-                    p.get_plate_type=function(handle){
-                        for(let plate_type of this.plate_types){
-                            if(plate_type.handle==handle){
-                                return plate_type
+                    <label class="data" for="basic-config-plate-type">Well Plate Type</label>
+                    <script>
+                        p.plate_types=[
+                            {
+                                'name':'Generic 96',
+                                'handle':'ge96',
+                                'category':'96 Well Plates',
+                                'well_count':96,
+                                'well_count_x':12,
+                                'well_count_y':8
+                            },
+                            {
+                                'name':'Perkin-Elmer 96',
+                                'handle':'pe96',
+                                'category':'96 Well Plates',
+                                'well_count':96,
+                                'well_count_x':12,
+                                'well_count_y':8
+                            },
+                            {
+                                'name':'Generic 384',
+                                'handle':'ge384',
+                                'category':'384 Well Plates',
+                                'well_count':384,
+                                'well_count_x':24,
+                                'well_count_y':16
+                            },
+                            {
+                                'name':'Perkin-Elmer 384',
+                                'handle':'pe384',
+                                'category':'384 Well Plates',
+                                'well_count':384,
+                                'well_count_x':24,
+                                'well_count_y':16
+                            },
+                            {
+                                'name':'Falcon 384',
+                                'handle':'fa384',
+                                'category':'384 Well Plates',
+                                'well_count':384,
+                                'well_count_x':24,
+                                'well_count_y':16
                             }
-                        }
-                        return null
-                    }
-                    p.init_plate_type_dropdown=function(element){
-                        this.create_dropdown(element,this.plate_types)
-
-                        this.set_wellplate_type({currentTarget:element})
-                    }
-                    p.set_wellplate_type=function(event){
-                        this.config.plate_type=this.get_plate_type(event.currentTarget.value)
-                    }
-                </script>
-                <select class="data" id="basic-config-plate-type" p:init="init_plate_type_dropdown" p:on-change="set_wellplate_type"></select>
-
-                <label for="basic-config-objective">objective</label>
-                <script>
-                    p.objectives=[
-                        {
-                            'name':'4x (Olympus)',
-                            'handle':'olympus4x'
-                        },
-                        {
-                            'name':'10x (Olympus)',
-                            'handle':'olympus10x'
-                        },
-                        {
-                            'name':'20x (Olympus)',
-                            'handle':'olympus20x'
-                        }
-                    ]
-                    p.get_objective=function(handle){
-                        for(let objective of this.objectives){
-                            if(objective.handle==handle){
-                                return objective
+                        ]
+                        p.get_plate_type=function(handle){
+                            for(let plate_type of this.plate_types){
+                                if(plate_type.handle==handle){
+                                    return plate_type
+                                }
                             }
+                            return null
                         }
-                        return null
-                    }
-                    p.init_objective_dropdown=function(element){
-                        this.create_dropdown(element,this.objectives)
-                        this.set_objective({currentTarget:element})
-                    }
-                    p.set_objective=function(event){
-                        this.config.objective=this.get_objective(event.currentTarget.value)
-                    }
-                </script>
-                <select class="data" id="basic-config-objective" p:init="init_objective_dropdown" p:on-change="set_objective"></select>
+                        p.init_plate_type_dropdown=function(element){
+                            this.create_dropdown(element,this.plate_types)
 
-                <button>Load Settings</button>
+                            this.set_wellplate_type({currentTarget:element})
+                        }
+                        p.set_wellplate_type=function(event){
+                            this.config.plate_type=this.get_plate_type(event.currentTarget.value)
+                        }
+                    </script>
+                    <select class="data" id="basic-config-plate-type" p:init="init_plate_type_dropdown" p:on-change="set_wellplate_type"></select>
+
+                    <label class="data" p:tooltip="Name of Cell Line used on the plate." for="basic-config-cell-line">Cell Line</label>
+                    <script>
+                        p.init_cell_line=function(element){
+                            this.set_cell_line({currentTarget:element},false)
+                        }
+                        p.set_cell_line=function(event,highlight_invalid=true){
+                            let value=event.currentTarget.value
+                            if(value){
+                                this.config.cell_line=value
+                            }
+                            this.check_validity(event,highlight_invalid)
+                        }
+                    </script>
+                    <input type="text" id="basic-config-cell-line" placeholder="Please enter the Cell Line" class="data" p:init="init_cell_line" p:on-input="set_cell_line" p:on-mouseover,focus="check_validity"/>
+
+                    <label class="data" p:tooltip="Base folder that will contain further folders with the images later. TOOD: allow browsing the filesystem for this!" for="basic-config-base-path">Base Storage Path</label>
+                    <script>
+                        p.init_base_path=function(element){
+                            this.set_base_path({currentTarget:element},false)
+                        }
+                        p.set_base_path=function(event,highlight_invalid=true){
+                            let value=event.currentTarget.value
+                            if(value){
+                                this.config.base_path=value
+                            }
+                            this.check_validity(event,highlight_invalid)
+                        }
+                    </script>
+                    <input type="text" id="basic-config-base-path" placeholder="Please enter the Base Path" class="data" p:init="init_base_path" p:on-input="set_base_path,check_validity" p:on-mouseover,focus="check_validity"/>
+
+                    <label class="data" p:tooltip="Trigger source for the imaging camera." for="basic-config-camera-trigger">Camera Trigger</label>
+                    <script>
+                        p.camera_triggers=[
+                            {
+                                'name':'Hardware',
+                                'handle':'hardware'
+                            },
+                            {
+                                'name':'Software',
+                                'handle':'software'
+                            }
+                        ]
+                        p.get_camera_trigger=function(handle){
+                            for(let camera_trigger of this.camera_triggers){
+                                if(camera_trigger.handle==handle){
+                                    return camera_trigger
+                                }
+                            }
+                            return null
+                        }
+                        p.set_camera_trigger=function(event){
+                            this.config.camera_trigger=this.get_camera_trigger(event.currentTarget.value)
+                        }
+                        p.init_camera_trigger_dropdown=function(element){
+                            this.create_dropdown(element,this.camera_triggers)
+                            this.set_camera_trigger({currentTarget:element})
+                        }
+                    </script>
+                    <select class="data" id="basic-config-camera-trigger" p:init="init_camera_trigger_dropdown" p:on-change="set_camera_trigger"></select>
+
+                    <label class="data" p:tooltip="Imaging camera pixel sensitivity/depth." for="basic-config-pixel-depth">Camera Pixel Depth</label>
+                    <script>
+                        p.pixel_depths=[
+                            {
+                                'name':'8 Bit (Monochrome)',
+                                'handle':'mono8'
+                            },
+                            {
+                                'name':'12 Bit (Monochrome)',
+                                'handle':'mono12'
+                            }
+                        ]
+                        p.get_pixel_depth=function(handle){
+                            for(let pixel_depth of this.pixel_depths){
+                                if(pixel_depth.handle==handle){
+                                    return pixel_depth
+                                }
+                            }
+                            return null
+                        }
+                        p.init_pixel_depth_dropdown=function(element){
+                            this.create_dropdown(element,this.pixel_depths)
+                            this.set_pixel_depth({currentTarget:element})
+                        }
+                        p.set_pixel_depth=function(event){
+                            this.config.pixel_depth=this.get_pixel_depth(event.currentTarget.value)
+                        }
+                    </script>
+                    <select class="data" id="basic-config-pixel-depth" p:init="init_pixel_depth_dropdown" p:on-change="set_pixel_depth"></select>
+
+                    <label for="basic-config-image-format">Image File Format</label>
+                    <script>
+                        p.image_formats=[
+                            {
+                                'name':'TIFF',
+                                'handle':'tiff'
+                            },
+                            {
+                                'name':'TIFF (compressed)',
+                                'handle':'tiffcompressed'
+                            }
+                        ]
+                        p.get_image_format=function(handle){
+                            for(let image_format of this.image_formats){
+                                if(image_format.handle==handle){
+                                    return image_format
+                                }
+                            }
+                            return null
+                        }
+                        p.init_image_format_dropdown=function(element){
+                            this.create_dropdown(element,this.image_formats)
+                            this.set_image_format({currentTarget:element})
+                        }
+                        p.set_image_format=function(event){
+                            this.config.image_format=this.get_image_format(event.currentTarget.value)
+                        }
+                    </script>
+                    <select class="data" id="basic-config-image-format" p:init="init_image_format_dropdown" p:on-change="set_image_format"></select>
+
+                    <label class="data" p:tooltip="The lens that is currently physically installed on the microscope. (This microscope does not support automatically switching to a different lens, this has to be done manually!)" for="basic-config-objective">Camera Lens</label>
+                    <script>
+                        p.objectives=[
+                            {
+                                'name':'4x Magnification (Olympus)',
+                                'handle':'olympus4x'
+                            },
+                            {
+                                'name':'10x Magnification (Olympus)',
+                                'handle':'olympus10x'
+                            },
+                            {
+                                'name':'20x Magnification (Olympus)',
+                                'handle':'olympus20x'
+                            }
+                        ]
+                        p.get_objective=function(handle){
+                            for(let objective of this.objectives){
+                                if(objective.handle==handle){
+                                    return objective
+                                }
+                            }
+                            return null
+                        }
+                        p.init_objective_dropdown=function(element){
+                            this.create_dropdown(element,this.objectives)
+                            this.set_objective({currentTarget:element})
+                        }
+                        p.set_objective=function(event){
+                            this.config.objective=this.get_objective(event.currentTarget.value)
+                        }
+                    </script>
+                    <select class="data" id="basic-config-objective" p:init="init_objective_dropdown" p:on-change="set_objective"></select>
+
+                    <button id="basic-config-load-settings-button">Load Existing Settings</button>
+                </div>
             </div>
 
             <style>
@@ -615,32 +694,73 @@
                         display:grid;
                         grid-template-columns: repeat(5,auto);
                     }
+                    .input-disabled {
+                        pointer-events: none;
+                    }
                 </style>
+                <script>
+                    p.set_grid_num=function(dim,event,inputs_to_disable_on_num_zero){
+                        console.log("hello")
+
+                        let num=parseInt(event.currentTarget.value)
+                        if(!this.config.grid){
+                            this.config.grid={}
+                        }
+                        this.config.grid[dim]=num
+
+                        for(let input_id of inputs_to_disable_on_num_zero){
+                            let input_element=document.querySelector(input_id)
+                            if(num==1){
+                                input_element.classList.add("input-disabled")
+                                input_element.disabled=true
+                            }else{
+                                input_element.classList.remove("input-disabled")
+                                input_element.disabled=false
+                            }
+                        }
+                    }
+                    p.set_grid_num_x=function(event){
+                        this.set_grid_num("num_x",event,["#grid-config-delta-x"])
+                    }
+                    p.set_grid_num_y=function(event){
+                        this.set_grid_num("num_y",event,["#grid-config-delta-y"])
+                    }
+                    p.set_grid_num_z=function(event){
+                        this.set_grid_num("num_z",event,["#grid-config-delta-z"])
+                    }
+                    p.set_grid_num_t=function(event){
+                        this.set_grid_num("num_t",event,[
+                            "#grid-config-delta-t-hours",
+                            "#grid-config-delta-t-minutes",
+                            "#grid-config-delta-t-seconds"
+                        ])
+                    }
+                </script>
                 <div id="grid-config-container">
-                    <h2>grid config</h2>
+                    <h2>Intra-Well Position Setup</h2>
 
                     <label class="data" p:tooltip="number of x steps to image at within a well">num x</label>
-                    <input type="number" min="1" max="10" step="1" value="1"/>
+                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_x"/>
                     <label>delta x (mm)</label>
-                    <input type="number" min="0.1" max="100" step="0.1" value="0.9"/>
+                    <input id="grid-config-delta-x" type="number" min="0.1" max="100" step="0.1" value="0.9"/>
 
                     <label class="data" p:tooltip="number of y steps to image at within a well">num y</label>
-                    <input type="number" min="1" max="10" step="1" value="1"/>
+                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_y"/>
                     <label class="data" p:tooltip="distance between y steps within well">delta y (mm)</label>
-                    <input type="number" min="0.1" max="100" step="0.1" value="0.9"/>
+                    <input id="grid-config-delta-y" type="number" min="0.1" max="100" step="0.1" value="0.9"/>
 
                     <label class="data" p:tooltip="number of z steps to image at within a well">num z</label>
-                    <input type="number" min="1" max="10" step="1" value="1"/>
+                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_z"/>
                     <label>delta z (um)</label>
-                    <input type="number" min="0.1" max="100" step="0.1" value="3.0"/>
+                    <input id="grid-config-delta-z" type="number" min="0.1" max="100" step="0.1" value="3.0"/>
 
                     <label>num t</label>
-                    <input type="number" min="1" max="10" step="1" value="1"/>
+                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_t"/>
                     <label>delta t (h:m:s)</label>
                     <div id="grid-config-delta-t">
-                        <input type="number" min="0" max="999" step="1" value="2"/>
-                        <p>:</p><input type="number" min="0" max="59" step="1" value="0"/>
-                        <p>:</p><input type="number" min="0" max="59" step="1" value="0"/>
+                        <input id="grid-config-delta-t-hours" type="number" min="0" max="999" step="1" value="2"/>
+                        <p>:</p><input id="grid-config-delta-t-minutes" type="number" min="0" max="59" step="1" value="0"/>
+                        <p>:</p><input id="grid-config-delta-t-seconds" type="number" min="0" max="59" step="1" value="0"/>
                     </div>
                 </div>
             </div>
@@ -651,13 +771,15 @@
                     grid-template-columns: 1fr 2fr;
                     height:100%;
                     overflow:hidden;
+                    grid-gap:1em;
                 }
                 #channel-container{
                     display:grid;
                     grid-template-columns: 1fr;
                     grid-template-rows: repeat(100,min-content);
 
-                    overflow-y: scroll;
+                    overflow-y: auto;
+                    overflow-x: auto;
                 }
             </style>
             <div class="tab-body" tab-name="channel + focus setup" id="channel-focus-setup">
@@ -671,65 +793,153 @@
                     }
                     p.light_sources=[
                         {
-                            'name':'Laser 405nm',
-                            'handle':'laser405nm'
+                            'name':'405nm Laser',
+                            'handle':'laser405nm',
+                            'category':'Fluorescence'
                         },
                         {
-                            'name':'Laser 488nm',
-                            'handle':'laser488nm'
+                            'name':'488nm Laser',
+                            'handle':'laser488nm',
+                            'category':'Fluorescence'
                         },
                         {
-                            'name':'Laser 730nm',
-                            'handle':'laser730nm'
-                        }
+                            'name':'561nm Laser',
+                            'handle':'laser561nm',
+                            'category':'Fluorescence'
+                        },
+                        {
+                            'name':'638nm Laser',
+                            'handle':'laser638nm',
+                            'category':'Fluorescence'
+                        },
+                        {
+                            'name':'730nm Laser',
+                            'handle':'laser730nm',
+                            'category':'Fluorescence'
+                        },
+                        {
+                            'name':'Brightfield LED (full)',
+                            'handle':'bffull',
+                            'category':'Brightfield'
+                        },
+                        {
+                            'name':'Brightfield LED (right half)',
+                            'handle':'bfrighthalf',
+                            'category':'Brightfield'
+                        },
+                        {
+                            'name':'Brightfield LED (left half)',
+                            'handle':'bflefthalf',
+                            'category':'Brightfield'
+                        },
                     ]
                     p.init_lightsource_dropdown=function(element){
                         this.create_dropdown(element,this.light_sources)
+                    }
+
+                    p.channel_move_up=function(event){
+                        let channel_config_item=event.currentTarget.parentNode
+                        let channel_config_item_prev=channel_config_item.previousSibling
+                        if(channel_config_item_prev){
+                            channel_config_item.parentNode.insertBefore(channel_config_item,channel_config_item_prev)
+                        }
+                    }
+                    p.channel_move_down=function(event){
+                        let channel_config_item=event.currentTarget.parentNode
+                        let channel_config_item_next=channel_config_item.nextSibling
+                        if(channel_config_item_next && channel_config_item_next!=document.querySelector("#channel-config-add-item-button")){
+                            channel_config_item.parentNode.insertBefore(channel_config_item_next,channel_config_item)
+                        }
+                    }
+                    p.remove_channel=function(event){
+                        let channel_config_item=event.currentTarget.parentNode
+                        channel_config_item.parentNode.removeChild(channel_config_item)
+                    }
+                    p.duplicate_channel=function(event){
+                        let channel_config_item=event.currentTarget.parentNode
+                        let channel_config_item_clone=channel_config_item.cloneNode(true)
+                        if(channel_config_item_clone.children[0].value.length>0){
+                            channel_config_item_clone.children[0].value+=" (copy)"
+                        }
+                        // insert copy immediately after original
+                        channel_config_item.parentNode.insertBefore(channel_config_item_clone,channel_config_item.nextSibling)
                     }
                 </script>
                 <style>
                     .channel-config-item{
                         display:grid;
-                        grid-template-columns: 1fr 1fr;
+                        grid-template-columns: auto auto auto auto;
+                        grid-template-rows: repeat(6,min-content);
+
                         border-bottom: 1px solid black;
                         padding-bottom: 0.5em;
                         margin-bottom: 0.2em;
+
+                        column-gap: 1em;
+                        row-gap:0.2em;
                     }
                     .channel-config-item-name{
                         font-size: 1.5em;
                         font-weight: bold;
-                        grid-column: 1 / span 2;
                     }
-                    .channel-config-add-item-button{
-                        height:1.5em;
+                    #channel-config-add-item-button{
                         font-size:1.3em;
-                        padding:0.5;
+                        padding:0.5em;
                         margin:0.2em;
                         margin-top: 1em;
                         border:1px solid black;
+                    }
+                    .col-4{
+                        grid-column: span 4;
+                    }
+                    .col-2{
+                        grid-column: span 2;
+                    }
+                    .channel-config-item>button{
+                        padding:0.5em;
+                        border:1px solid black;
+                    }
+                    .input-unit-container{
+                        display:grid;
+                        grid-template-columns:1fr auto;
                     }
                 </style>
                 <div id="channel-container" class="data">
                     <template name="channel_config_item">
                         <div class="channel-config-item">
-                            <input class="channel-config-item-name" type="text" placeholder="Enter Channel Name"/>
+                            <input class="col-4 channel-config-item-name" type="text" placeholder="Enter Channel Name"/>
 
-                            <label>Lightsource</label>
-                            <select class="data" p:init="init_lightsource_dropdown"></select>
+                            <label class="col-2">Lightsource:</label>
+                            <select class="col-2 data" p:init="init_lightsource_dropdown"></select>
 
-                            <label>Illumination (%)</label>
-                            <input type="number" min="0" max="100" step="0.1" value="100" wheel-adjust="false"/>
-                            <label>Exposure time (ms)</label>
-                            <input type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false"/>
-                            <label>Analog Gain</label>
+                            <label>Exposure time:</label>
+                            <div class="input-unit-container">
+                                <input type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false"/>
+                                <p>ms</p>
+                            </div>
+
+                            <label>Illumination:</label>
+                            <div class="input-unit-container">
+                                <input type="number" min="0" max="100" step="0.1" value="100" wheel-adjust="false"/>
+                                <p>%</p>
+                            </div>
+
+                            <label>Analog Gain:</label>
                             <input type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false"/>
-                            <label>Z-Offset? (um)</label>
-                            <input type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false"/>
 
-                            <button class="">whatever</button>
+                            <label>Z-Offset:</label>
+                            <div class="input-unit-container">
+                                <input type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false"/>
+                                <p>um</p>
+                            </div>
+
+                            <button class="data" p:on-click="channel_move_up">Move Up</button>
+                            <button class="data" p:on-click="channel_move_down">Move Down</button>
+                            <button class="data" p:on-click="duplicate_channel">Duplicate</button>
+                            <button class="data" p:on-click="remove_channel">Remove</button>
                         </div>
                     </template>
-                    <button class="data channel-config-add-item-button" p:on-click="add_channel_config_item">add a channel</button>
+                    <button id="channel-config-add-item-button" class="data" p:on-click="add_channel_config_item">Add Channel</button>
                 </div>
                 <div>
                     channel setup goes here
@@ -783,46 +993,47 @@
             </div>
         </div>
 
-        <p style="display:none;" class="data">
-            <style>
-                .tooltip:not(.processed){
-                    display:none;
-                }
-                .tooltip-container{
-                    position:absolute;
-                    z-index:100;
-                    background:white;
-                    border:1px solid black;
-
-                    transform:translateY(-100%) translateX(-50%);
-                    padding:0.3em;
-                    background-color:lightyellow;
-                }
-            </style>
-            <script>
-                p.bare_init_tooltip=function(element){
-                    /// init tooltip to be definitely visible (which it should be, in the top left corner of the viewport)
-                    element.style.left="0px"
-                    element.style.top="0px"
-                }.bind(p)
-                p.init_tooltip=function(element){
-                    /// actually init element position to top center of the element that it is attached to
-                    let rect=element.element_anker.getBoundingClientRect()
-                    element.style.left=rect.left+rect.width/2+"px"
-                    element.style.top=rect.top +"px"
-                }.bind(p)
-            </script>
-            <template name="tooltip">
-                <div class="tooltip-container data" p:init="bare_init_tooltip" p:init-vis="init_tooltip"></div>
-            </template>
-        </p>
-
         <div id="element_containing_external_links" style="display:none;">
             <link rel="stylesheet" href="components/tab/style.css">
             <script src="components/tab/logic.js"></script>
 
             <link rel="stylesheet" href="components/dynamic-image/style.css">
             <script src="components/dynamic-image/logic.js"></script>
+
+            <!-- tooltip html component -->
+            <p style="display:none;" class="data">
+                <style>
+                    .tooltip:not(.processed){
+                        display:none;
+                    }
+                    .tooltip-container{
+                        position:absolute;
+                        z-index:100;
+                        background:white;
+                        border:1px solid black;
+
+                        transform:translateY(-100%) translateX(-50%);
+                        padding:0.3em;
+                        background-color:lightyellow;
+                    }
+                </style>
+                <script>
+                    p.bare_init_tooltip=function(element){
+                        /// init tooltip to be definitely visible (which it should be, in the top left corner of the viewport)
+                        element.style.left="0px"
+                        element.style.top="0px"
+                    }.bind(p)
+                    p.init_tooltip=function(element){
+                        /// actually init element position to top center of the element that it is attached to
+                        let rect=element.element_anker.getBoundingClientRect()
+                        element.style.left=rect.left+rect.width/2+"px"
+                        element.style.top=rect.top +"px"
+                    }.bind(p)
+                </script>
+                <template name="tooltip">
+                    <div class="tooltip-container data" p:init="bare_init_tooltip" p:init-vis="init_tooltip"></div>
+                </template>
+            </p>
 
             <!-- loading page done - deactive loading screen overlay-->
             <script>
