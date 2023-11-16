@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <!-- main content start -->
+        <!-- main content -->
         <style>
             #main-content{
                 width:100vw;
@@ -266,7 +266,7 @@
                     </script>
                     <input type="text" id="basic-config-cell-line" placeholder="Please enter the Cell Line" class="data" p:init="init_cell_line" p:on-input="set_cell_line" p:on-mouseover,focus="check_validity"/>
 
-                    <label class="data" p:tooltip="Base folder that will contain further folders with the images later. TOOD: allow browsing the filesystem for this!" for="basic-config-base-path">Base Storage Path</label>
+                    <label class="data" p:tooltip="Base folder that will contain further folders with the images later. TODO: allow browsing the filesystem for this!" for="basic-config-base-path">Base Storage Path</label>
                     <script>
                         p.init_base_path=function(element){
                             this.set_base_path({currentTarget:element},false)
@@ -864,6 +864,17 @@
                         // insert copy immediately after original
                         channel_config_item.parentNode.insertBefore(channel_config_item_clone,channel_config_item.nextSibling)
                     }
+                    p.investigate_channel=function(event){
+                        let channel_config_item=event.currentTarget.parentNode
+                        let channel_name=channel_config_item.children[0].value
+                        let lightsource=channel_config_item.children[3].value
+                        let exposure_time=channel_config_item.children[5].children[0].value
+                        let illumination=channel_config_item.children[7].children[0].value
+                        let analog_gain=channel_config_item.children[9].value
+                        let z_offset=channel_config_item.children[11].children[0].value
+
+                        console.log("investigate channel",channel_name,lightsource,exposure_time,illumination,analog_gain,z_offset)
+                    }
                 </script>
                 <style>
                     .channel-config-item{
@@ -892,6 +903,9 @@
                     .col-4{
                         grid-column: span 4;
                     }
+                    .col-3{
+                        grid-column: span 3;
+                    }
                     .col-2{
                         grid-column: span 2;
                     }
@@ -907,7 +921,9 @@
                 <div id="channel-container" class="data">
                     <template name="channel_config_item">
                         <div class="channel-config-item">
-                            <input class="col-4 channel-config-item-name" type="text" placeholder="Enter Channel Name"/>
+                            <input class="col-3 channel-config-item-name" type="text" placeholder="Enter Channel Name"/>
+
+                            <button class="data" p:on-click="investigate_channel">Investigate -></button>
 
                             <label class="col-2">Lightsource:</label>
                             <select class="col-2 data" p:init="init_lightsource_dropdown"></select>
@@ -953,35 +969,68 @@
                 </div>
             </div>
 
-            <div class="tab-body" tab-name="review" id="whatasdverasd">
+            <style>
+                #tab-config-summary>ul>li{
+                    list-style-type: none; /* Removes default list style */
+                    padding:0;
+                    margin:0;
+                }
+
+                #tab-config-summary>ul>li.config-accepted::before {
+                    content: "\2713 "; /* Unicode for checkmark */
+                    color: green; /* Color for checkmark */
+                }
+
+                #tab-config-summary>ul>li.config-rejected::before,#tab-config-summary>ul>li:not(.config-accepted)::before {
+                    content: "\2717 "; /* Unicode for cross */
+                    color: red; /* Color for cross */
+                }
+            </style>
+            <div class="tab-body" tab-name="review" id="tab-config-summary">
                 <h2>config summary:</h2>
                 <ul>
-                    <li>trigger: hardware</li>
-                    <li>bit depth: 12bit</li>
-                    <li>90 wells selected</li>
-                    <li>positions per well: 7-9</li>
-                    <li>focus system: per-position laser autofocus</li>
-                    <li>base path: /home</li>
-                    <li>
+                    <li class="config-accepted">trigger: hardware</li>
+                    <li class="config-accepted">bit depth: 12bit</li>
+                    <li class="config-accepted">image format: TIFF (compressed)</li>
+                    <li class="config-accepted">camera lens: 4x Magnificiation (Olympus)</li>
+                    <li class="config-accepted">well plate type: generic 96</li>
+
+                    <li class="config-accepted data" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]">90 wells selected</li>
+                    <li class="config-accepted data" p:tooltip="[TODO: maybe combine with item above? list this selection somehoe if it differs between wells.. maybe show position within wells also?]">positions per well: 7-9</li>
+                    <li class="config-accepted">focus system: per-position laser autofocus</li>
+
+                    <li class="config-accepted">project name: P19685</li>
+                    <li class="config-accepted">plate name: AHSD-G57-PLR-24h</li>
+                    <li class="config-accepted">cell line: U2OS</li>
+                    <li class="config-accepted">base path: /mnt/squid</li>
+                    <li class="config-accepted">final output path: /mnt/squid/P19685/AHSD-G57-PLR-24h</li>
+                    <li class="config-accepted">
                         <b>imaging channels:</b>
                         <ul>
-                            <li>Nucleus (hover over me to see all the details)</li>
-                            <li>ER (hover over me to see all the details)</li>
-                            <li>Golgi (hover over me to see all the details)</li>
+                            <li class="data" p:tooltip="name: Nucleus ; light source: 405nm Laser ; exposure time: 4.5ms ; [TODO: add remaining information]">Nucleus</li>
+                            <li class="data" p:tooltip="name: ER ; light source: 488nm Laser ; exposure time: 13.0ms ; [TODO: add remaining information]">ER</li>
+                            <li class="data" p:tooltip="name: Golgi ; light source: 561nm Laser ; exposure time: 54.0ms ; [TODO: add remaining information]">Golgi</li>
                         </ul>
                     </li>
-                    <li>final output path: /home/spec5k/GHFA83F2-KUH</li>
-                    <li>(max.) storage used for output: 123GB</li>
-                    <li>estimated imaging time: 1h</li>
+                    <li class="config-accepted data" p:tooltip="maximum storage required to store all images. because TIFF (compressed) is used as image file format, the actually used storage may be smaller.">max. storage used for output: 123GB</li>
+                    <li class="config-accepted data" p:tooltip="estimated imaging time based on rolling dice or something. better estimate is available once imaging has started.">estimated imaging time: 1h 23m</li>
                 </ul>
+                <style>
+                    #review-run-button{
+                        padding:1em;
+                        margin:0.5em;
+                        border:1px solid black;
+                    }
+                </style>
+                <div>server status: Config accepted. Microscope idle.</div>
+                <button id="review-run-button">RUN (the acquisition)</button>
             </div>
 
-            <div class="tab-body" tab-name="run" id="whaasdastverasd">
-                <button>RUN (the acquisition)</button>
+            <div class="tab-body" tab-name="Status" id="tab-device-status">
                 <div>
                     <p>54 / 90 images done (61%)</p>
-                    <p>running for 34m 54s (since 2023-10-24 13:11:43)</p>
-                    <p>estimate time left 23m 43s (done by 2023-10-24 14:12:39)</p>
+                    <p>has been running for 34m 54s (since 2023-10-24 13:11:43)</p>
+                    <p>estimated time left is 23m 43s (done by 2023-10-24 14:12:39)</p>
                     <p>64GB used so far (58% of max.)</p>
                 </div>
                 <div>
@@ -990,13 +1039,37 @@
                 <div>
                     histogram of last image here
                 </div>
+                <div>
+                    system metrics:
+                    <ul>
+                        <li>laser autofocus success rate:
+                            <ul>
+                                <li>1 : 85%</li>
+                                <li>2 : 9%</li>
+                                <li>3 : 5%</li>
+                                <li>>3 : 1%</li>
+                            </ul>
+                        </li>
+                        <li>storage queue occupancy rate: 0 (100%)</li>
+                        <li>
+                            warning/errors:
+                            <ul>
+                                <li>(none so far)</li>
+                            </ul>
+                        </li>
+                        <li>acquisition log file size: 384kB (12kB/m)</li>
+                    </ul>
+                </div>
             </div>
         </div>
 
+        <!-- utility tools and general functionality -->
         <div id="element_containing_external_links" style="display:none;">
+            <!-- tab component -->
             <link rel="stylesheet" href="components/tab/style.css">
             <script src="components/tab/logic.js"></script>
 
+            <!-- dynamic image component -->
             <link rel="stylesheet" href="components/dynamic-image/style.css">
             <script src="components/dynamic-image/logic.js"></script>
 
