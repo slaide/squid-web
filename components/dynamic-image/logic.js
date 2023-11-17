@@ -77,7 +77,11 @@ document.addEventListener("DOMContentLoaded",function(){
 
         let image_element=document.createElement("img")
         image_element.classList.add("dynamic-image")
-        image_element.setAttribute("src","https://i2.wp.com/nonicoclolasos.wordpress.com/files/2008/10/ekorre.jpg")
+
+        let img_src=element.getAttribute("src")
+        if(img_src){
+            image_element.setAttribute("src",img_src)
+        }
 
         let observer = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
