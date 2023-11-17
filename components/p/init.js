@@ -137,6 +137,18 @@ let p={
                                         })
                                     }
                                     continue
+                                }else if(event_name.startsWith("attrchange")){
+                                    let attribute_list=event_name.replace("attrchange(","").replace(")","").split(",")
+                                    let attribute_change_observer=new MutationObserver(function(mutationsList, observer){
+                                        mutationsList.forEach(mutation=>{
+                                            if(mutation.type==="attributes"){
+                                                if(attribute_list.includes(mutation.attributeName)){
+                                                    p[event_func_name](mutation.target)
+                                                }
+                                            }
+                                        })
+                                    })
+                                    attribute_change_observer.observe(element,{attributes:true})
                                 }
 
                                 element.addEventListener(event_name,function(event){
