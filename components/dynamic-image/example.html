@@ -4,6 +4,8 @@
     <title>dynamic image example</title>
     <link rel="stylesheet" href="style.css">
     <script src="logic.js"></script>
+
+    <script src="../p/init.js"></script>
 </head>
 <body>
     <style>
@@ -14,10 +16,23 @@
             position: relative;
         }
     </style>
-    <div class="dynamic-image-display image-example-container">
+    <div class="dynamic-image-display image-example-container" src="cat.jpeg">
         <div>name</div>
     </div>
-    <div id="dic" class="dynamic-image-display notitle image-example-container">
+    <div class="dynamic-image-display notitle image-example-container" src="cat.jpeg">
     </div>
+    <!-- can be combined with attribute change observers to allow changing the src through the container -->
+    <div id="change-me-to-a-cat" class="dynamic-image-display notitle image-example-container data" src="" p:on-attrchange(src)="onsrcchange"></div>
+    <script>
+        p.onsrcchange = function(display_element){
+            display_element.children[display_element.children.length-1].firstChild.src=display_element.getAttribute("src")
+        }
+        p.changetocat=function(event){
+            console.log("changetocat")
+            let target_element=document.getElementById("change-me-to-a-cat")
+            target_element.setAttribute("src","cat.jpeg")
+        }
+    </script>
+    <button class="data" p:on-click="changetocat">change blank display above to a cat</button>
 </body>
 </html>
