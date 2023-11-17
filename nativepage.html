@@ -173,7 +173,7 @@
                     </script>
                     <input type="text" id="basic-config-project-name" placeholder="Please enter the Project Name" class="data" p:init="init_project_name" p:on-input="set_project_name" p:on-mouseover,focus="check_validity"/>
 
-                    <label class="data" p:tooltip="Name of the Well Plate. If the plate has a sticker with an ID, use that." for="basic-config-plate-name">Well Plate Name</label>
+                    <label class="data" p:tooltip="Name of the Well Plate. If the plate has a sticker with an ID, use that." for="basic-config-plate-name">Plate Name</label>
                     <script>
                         p.init_plate_name=function(element){
                             this.set_plate_name({currentTarget:element},false)
@@ -188,7 +188,7 @@
                     </script>
                     <input type="text" id="basic-config-plate-name" placeholder="Please enter the Plate Name" class="data" p:init="init_plate_name" p:on-input="set_plate_name" p:on-mouseover,focus="check_validity"/>
 
-                    <label class="data" for="basic-config-plate-type">Well Plate Type</label>
+                    <label class="data" for="basic-config-plate-type">Plate Type</label>
                     <script>
                         p.plate_types=[
                             {
@@ -921,38 +921,38 @@
                 <div id="channel-container" class="data">
                     <template name="channel_config_item">
                         <div class="channel-config-item">
-                            <input class="col-3 channel-config-item-name" type="text" placeholder="Enter Channel Name"/>
+                            <input class="col-3 channel-config-item-name data" p:tooltip="Name of this channel (used for metadata only). This should be the name of dye. Use the name of the organelle only if there is no dye in this channel." type="text" placeholder="Enter Channel Name"/>
 
-                            <button class="data" p:on-click="investigate_channel">Investigate -></button>
+                            <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
 
-                            <label class="col-2">Lightsource:</label>
-                            <select class="col-2 data" p:init="init_lightsource_dropdown"></select>
+                            <label>Lightsource:</label>
+                            <select class="col-3 data" p:init="init_lightsource_dropdown"></select>
 
-                            <label>Exposure time:</label>
+                            <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
                             <div class="input-unit-container">
                                 <input type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false"/>
                                 <p>ms</p>
                             </div>
 
-                            <label>Illumination:</label>
+                            <label class="data" p:tooltip="Fraction of the maximum power of the lightsource with which it illuminates the sample. Must be in range [0;100%]">Lightsource Power:</label>
                             <div class="input-unit-container">
                                 <input type="number" min="0" max="100" step="0.1" value="100" wheel-adjust="false"/>
                                 <p>%</p>
                             </div>
 
-                            <label>Analog Gain:</label>
+                            <label class="data" p:tooltip="Analog gain increases the camera sensor sensitivity. This makes a weaker signal appear stronger, but may increase the level of noise in the image.">Analog Gain:</label>
                             <input type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false"/>
 
-                            <label>Z-Offset:</label>
+                            <label class="data" p:tooltip="The z-offset of the imaging plane of this channel from the focus plane of the current position.">Z-Offset:</label>
                             <div class="input-unit-container">
                                 <input type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false"/>
                                 <p>um</p>
                             </div>
 
-                            <button class="data" p:on-click="channel_move_up">Move Up</button>
-                            <button class="data" p:on-click="channel_move_down">Move Down</button>
-                            <button class="data" p:on-click="duplicate_channel">Duplicate</button>
-                            <button class="data" p:on-click="remove_channel">Remove</button>
+                            <button class="data" p:tooltip="Move this channel up in the imaging order." p:on-click="channel_move_up">Move Up</button>
+                            <button class="data" p:tooltip="Move this channel down in the imaging order."  p:on-click="channel_move_down">Move Down</button>
+                            <button class="data" p:tooltip="Create a copy of this channel."  p:on-click="duplicate_channel">Duplicate</button>
+                            <button class="data" p:tooltip="Delete this channel."  p:on-click="remove_channel">Remove</button>
                         </div>
                     </template>
                     <button id="channel-config-add-item-button" class="data" p:on-click="add_channel_config_item">Add Channel</button>
@@ -960,7 +960,10 @@
                 <div>
                     channel setup goes here
                     <ul>
-                        <li>live view</li>
+                        <li>
+                            <h2>live view</h2>
+                            <div class="dynamic-image"></div>
+                        </li>
                         <li>contrast and brightness enhancers</li>
                         <li>overlay to indicate saturated pixels?</li>
                         <li>histogram</li>
@@ -993,7 +996,7 @@
                     <li class="config-accepted">bit depth: 12bit</li>
                     <li class="config-accepted">image format: TIFF (compressed)</li>
                     <li class="config-accepted">camera lens: 4x Magnificiation (Olympus)</li>
-                    <li class="config-accepted">well plate type: generic 96</li>
+                    <li class="config-accepted">plate type: generic 96</li>
 
                     <li class="config-accepted data" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]">90 wells selected</li>
                     <li class="config-accepted data" p:tooltip="[TODO: maybe combine with item above? list this selection somehoe if it differs between wells.. maybe show position within wells also?]">positions per well: 7-9</li>
