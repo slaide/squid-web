@@ -27,6 +27,24 @@ function center_image(element){
     element.children[0].style.setProperty("--top",element.image_offset_top+"px")
     element.children[0].style.setProperty("--scale",element.image_scale)
 }
+function center_image_on_load(element){
+    element.addEventListener("load",(event)=>{
+        let element=event.currentTarget
+        // center on event trigger (may not actually display image if it is outside current viewport, but _could_)
+        center_image(element)
+        // then center on first draw (when image is actually displayed)
+        let intersection_observer=new IntersectionObserver((entries)=>{
+            for(let entry of entries){
+                if(entry.isIntersecting){
+                    center_image(element)
+                    intersection_observer.disconnect()
+                }
+            }
+        })
+        // register this on parent, because image may initially be hidden (outside current viewport)
+        intersection_observer.observe(element.parentNode)
+    })
+}
 
 document.addEventListener("DOMContentLoaded",function(){
     for(element of document.getElementsByClassName("dynamic-image-display")){
@@ -117,18 +135,7 @@ document.addEventListener("DOMContentLoaded",function(){
 
         // once element is loaded, wait for first draw, then center it
         // (workaround for multiple browsers where image size is not determined on load, but on display)
-        image_element.addEventListener("load",(event)=>{
-            let element=event.currentTarget
-            let intersection_observer=new IntersectionObserver((entries)=>{
-                for(let entry of entries){
-                    if(entry.isIntersecting){
-                        center_image(element)
-                        intersection_observer.disconnect()
-                    }
-                }
-            })
-            intersection_observer.observe(element)
-        })
+        center_image_on_load(image_element)
 
         image_container_element.appendChild(image_element)
     }
