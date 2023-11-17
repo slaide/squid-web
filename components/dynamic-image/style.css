@@ -14,6 +14,8 @@
 .dynamic-image{
     position:absolute;
 
+    transform-origin:center;
+
     --left:0px;
     --top:0px;
     --scale:1;

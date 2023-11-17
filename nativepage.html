@@ -958,14 +958,49 @@
                     <button id="channel-config-add-item-button" class="data" p:on-click="add_channel_config_item">Add Channel</button>
                 </div>
                 <div>
-                    channel setup goes here
                     <ul>
                         <li>
                             <h2>live view</h2>
-                            <div class="dynamic-image"></div>
+                            <style>
+                                #live-view-display{
+                                    width:500px;
+                                    height:500px;
+                                    border:1px solid black;
+                                }
+                            </style>
+                            <div id="live-view-display" class="dynamic-image-display notitle data" src="cells.png" p:on-attrchange(src)="onsrcchange"></div>
                         </li>
-                        <li>contrast and brightness enhancers</li>
-                        <li>overlay to indicate saturated pixels?</li>
+                        <li>
+                            <h3>enhance contrast and brightness</h3>
+                            <label>brightness</label><input type="number" min="0" max="10" value="1.0" step="0.1"/>
+                            <label>contrast</label><input type="number" min="0" max="10" value="1.0" step="0.1"/>
+                        </li>
+                        <li>
+                            <label>indicate saturated pixels?</label>
+                            <script>
+                                p.change_saturated_pixel_indicator=function(event){
+                                    let img_element=document.getElementById("live-view-display")
+                                    if(event.currentTarget.checked){
+                                        img_element.setAttribute("src",img_element.getAttribute("src")+".saturated")
+                                    }else{
+                                        img_element.setAttribute("src",img_element.getAttribute("src").replace(".saturated",""))
+                                    }
+                                }
+                            </script>
+                            <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
+                        </li>
+                        <script>
+                            p.getimgval=function(event){
+                                let img_element=document.getElementById("live-view-display")
+
+                                img_element.setAttribute("src","cells2.png")
+                            }
+                            p.onsrcchange=function(element){
+                                element.children[element.children.length-1].firstElementChild.setAttribute("src",element.getAttribute("src"))
+                                center_image_on_load(element.children[element.children.length-1].firstElementChild)
+                            }
+                        </script>
+                        <li><button class="data" p:on-click="getimgval">show img #2</button></li>
                         <li>histogram</li>
                         <li>focus measure?</li>
                     </ul>
