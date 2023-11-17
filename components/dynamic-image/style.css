@@ -4,6 +4,13 @@
     grid-auto-flow: column;
     grid-template-rows: min-content auto;
 }
+.dynamic-image-display.notitle{
+    grid-template-rows: auto;
+}
+.dynamic-image-container{
+    position:relative;
+    overflow:hidden;
+}
 .dynamic-image{
     position:absolute;
 
@@ -15,8 +22,4 @@
     top:var(--top);
 
     transform: scale( var(--scale) ) ;
-}
-.dynamic-image-container{
-    position:relative;
-    overflow:hidden;
 }
