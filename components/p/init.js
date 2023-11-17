@@ -23,6 +23,24 @@ let p={
             resize_callback(entry.target)
         }
     }),
+    get_img_data(img_element,also_return_canvas=false){
+        const canvas = document.createElement('canvas');
+        canvas.width = img_element.width;
+        canvas.height = img_element.height;
+    
+        // Draw the image on canvas
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img_element, 0, 0);
+    
+        // Extract image data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        if(also_return_canvas){
+            return [imageData,canvas,ctx]
+        }
+
+        return imageData
+    },
     tooltip_begin(event){
         let tooltip_el=event.currentTarget.tooltip_element
         if(!tooltip_el){
