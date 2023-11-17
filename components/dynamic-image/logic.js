@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded",function(){
             }
 
             event_target.children[0].style.setProperty("--scale",event_target.image_scale)
-        })
+        },{passive:false})
 
         let image_element=document.createElement("img")
         image_element.classList.add("dynamic-image")
