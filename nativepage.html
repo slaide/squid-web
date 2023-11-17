@@ -444,6 +444,12 @@
                         user-select:none;
                         position:relative;
 
+                        font-size:calc(var(--well-size) * 0.4);
+
+                        display:block;
+                        width:var(--well-size);
+                        height:var(--well-size);
+
                         --default-background:var(--idle-color);
                         --highlight-color:red;
                         --select-color:var(--active-color);
@@ -464,7 +470,6 @@
                         position:absolute;
                     }
                     .well-item > div.well-item-title-all{
-                        font-size:0.8em;
                         transform:translate(-50%,-50%) rotate(-45deg);
                     }
                     .well-item.selected{
@@ -503,7 +508,7 @@
                                     }else if(y==0 && x!=0){
                                         well.children[0].innerText=x
                                     }else if(x==0 && y==0){
-                                        well.children[0].innerText="WHOLE PLATE"
+                                        well.children[0].innerText="ALL"
                                         well.children[0].classList.add("well-item-title-all")
                                     }
 
@@ -529,9 +534,8 @@
 
                         // set size and make children visible again
                         for(var child of element.children){
-                            child.style.width=well_size+"px"
-                            child.style.height=well_size+"px"
-                            child.style.display="block"
+                            child.style.setProperty("--well-size",well_size+"px")
+                            child.style.display=null
                         }
                     }
                     p.get_wells_from_current=function(element){
