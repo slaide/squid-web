@@ -446,7 +446,6 @@
 
                         font-size:calc(var(--well-size) * 0.4);
 
-                        display:block;
                         width:var(--well-size);
                         height:var(--well-size);
 
@@ -471,6 +470,7 @@
                     }
                     .well-item > div.well-item-title-all{
                         transform:translate(-50%,-50%) rotate(-45deg);
+                        font-weight: bold;
                     }
                     .well-item.selected{
                         --background:var(--select-color);
@@ -700,19 +700,23 @@
                     }
                     .input-disabled {
                         pointer-events: none;
+                        text-decoration: line-through;
                     }
                 </style>
                 <script>
-                    p.set_grid_num=function(dim,event,inputs_to_disable_on_num_zero){
-                        console.log("hello")
+                    p.set_grid=function(attribute,event,inputs_to_disable_on_num_one,num_type="int"){
+                        let parse_func=parseInt;
+                        if(num_type=="float"){
+                            parse_func=parseFloat;
+                        }
+                        let num=parse_func(event.currentTarget.value)
 
-                        let num=parseInt(event.currentTarget.value)
                         if(!this.config.grid){
                             this.config.grid={}
                         }
-                        this.config.grid[dim]=num
+                        this.config.grid[attribute]=num
 
-                        for(let input_id of inputs_to_disable_on_num_zero){
+                        for(let input_id of inputs_to_disable_on_num_one){
                             let input_element=document.querySelector(input_id)
                             if(num==1){
                                 input_element.classList.add("input-disabled")
@@ -724,47 +728,208 @@
                         }
                     }
                     p.set_grid_num_x=function(event){
-                        this.set_grid_num("num_x",event,["#grid-config-delta-x"])
+                        this.set_grid("num_x",event,["#grid-config-delta-x"])
                     }
                     p.set_grid_num_y=function(event){
-                        this.set_grid_num("num_y",event,["#grid-config-delta-y"])
+                        this.set_grid("num_y",event,["#grid-config-delta-y"])
                     }
                     p.set_grid_num_z=function(event){
-                        this.set_grid_num("num_z",event,["#grid-config-delta-z"])
+                        this.set_grid("num_z",event,["#grid-config-delta-z"])
                     }
                     p.set_grid_num_t=function(event){
-                        this.set_grid_num("num_t",event,[
+                        this.set_grid("num_t",event,[
                             "#grid-config-delta-t-hours",
                             "#grid-config-delta-t-minutes",
                             "#grid-config-delta-t-seconds"
                         ])
                     }
-                </script>
-                <div id="grid-config-container">
-                    <h2>Intra-Well Position Setup</h2>
 
-                    <label class="data" p:tooltip="number of x steps to image at within a well">num x</label>
-                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_x"/>
+                    p.set_grid_delta_x=function(event){
+                        p.set_grid("delta_x",event,[],"float")
+                    }
+                    p.set_grid_delta_y=function(event){
+                        p.set_grid("delta_y",event,[],"float")
+                    }
+                    p.set_grid_delta_z=function(event){
+                        p.set_grid("delta_z",event,[],"float")
+                    }
+                    p.set_grid_delta_t_h=function(event){
+                        p.set_grid("delta_t_h",event,[],"float")
+                    }
+                    p.set_grid_delta_t_m=function(event){
+                        p.set_grid("delta_t_m",event,[],"float")
+                    }
+                    p.set_grid_delta_t_s=function(event){
+                        p.set_grid("delta_t_s",event,[],"float")
+                    }
+
+                    p.init_grid=function(_){
+                        let grid_num_x_element=document.querySelector("#grid-num-x")
+                        this.set_grid_num_x({currentTarget:grid_num_x_element,target:grid_num_x_element})
+                        let grid_num_y_element=document.querySelector("#grid-num-y")
+                        this.set_grid_num_y({currentTarget:grid_num_y_element,target:grid_num_y_element})
+                        let grid_num_z_element=document.querySelector("#grid-num-z")
+                        this.set_grid_num_z({currentTarget:grid_num_z_element,target:grid_num_z_element})
+                        let grid_num_t_element=document.querySelector("#grid-num-t")
+                        this.set_grid_num_t({currentTarget:grid_num_t_element,target:grid_num_t_element})
+
+                        let grid_delta_x_element=document.querySelector("#grid-config-delta-x")
+                        this.set_grid_delta_x({currentTarget:grid_delta_x_element,target:grid_delta_x_element})
+                        let grid_delta_y_element=document.querySelector("#grid-config-delta-y")
+                        this.set_grid_delta_y({currentTarget:grid_delta_y_element,target:grid_delta_y_element})
+                        let grid_delta_z_element=document.querySelector("#grid-config-delta-z")
+                        this.set_grid_delta_z({currentTarget:grid_delta_z_element,target:grid_delta_z_element})
+                        let grid_delta_t_hours_element=document.querySelector("#grid-config-delta-t-hours")
+                        this.set_grid_delta_t_h({currentTarget:grid_delta_t_hours_element,target:grid_delta_t_hours_element})
+                        let grid_delta_t_minutes_element=document.querySelector("#grid-config-delta-t-minutes")
+                        this.set_grid_delta_t_m({currentTarget:grid_delta_t_minutes_element,target:grid_delta_t_minutes_element})
+                        let grid_delta_t_seconds_element=document.querySelector("#grid-config-delta-t-seconds")
+                        this.set_grid_delta_t_s({currentTarget:grid_delta_t_seconds_element,target:grid_delta_t_seconds_element})
+                    }
+                </script>
+                <div id="grid-config-container" class="data" p:init="init_grid">
+                    <h2>Imaging positions within well</h2>
+
+                    <label class="data" p:tooltip="number of x steps to image at within a well">num x positions</label>
+                    <input id="grid-num-x" class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_x"/>
                     <label>delta x (mm)</label>
                     <input id="grid-config-delta-x" type="number" min="0.1" max="100" step="0.1" value="0.9"/>
 
-                    <label class="data" p:tooltip="number of y steps to image at within a well">num y</label>
-                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_y"/>
+                    <label class="data" p:tooltip="number of y steps to image at within a well">num y positions</label>
+                    <input id="grid-num-y" class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_y"/>
                     <label class="data" p:tooltip="distance between y steps within well">delta y (mm)</label>
                     <input id="grid-config-delta-y" type="number" min="0.1" max="100" step="0.1" value="0.9"/>
 
-                    <label class="data" p:tooltip="number of z steps to image at within a well">num z</label>
-                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_z"/>
+                    <label class="data" p:tooltip="number of z steps to image at within a well">num z positions</label>
+                    <input id="grid-num-z" class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_z"/>
                     <label>delta z (um)</label>
                     <input id="grid-config-delta-z" type="number" min="0.1" max="100" step="0.1" value="3.0"/>
 
-                    <label>num t</label>
-                    <input class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_t"/>
+                    <label>num timepoints</label>
+                    <input id="grid-num-t" class="data" type="number" min="1" max="10" step="1" value="1" p:on-change="set_grid_num_t"/>
                     <label>delta t (h:m:s)</label>
                     <div id="grid-config-delta-t">
                         <input id="grid-config-delta-t-hours" type="number" min="0" max="999" step="1" value="2"/>
                         <p>:</p><input id="grid-config-delta-t-minutes" type="number" min="0" max="59" step="1" value="0"/>
                         <p>:</p><input id="grid-config-delta-t-seconds" type="number" min="0" max="59" step="1" value="0"/>
+                    </div>
+
+                    <style>
+                        #grid-mask-container{
+                                grid-column: span 4;
+                        }
+                        #grid-mask-title{
+                            font-size: 1.2em;
+                            margin-bottom:1em;
+                            font-weight: bold;
+                        }
+                    </style>
+                    <div id="grid-mask-container">
+                        <div id="grid-mask-title">Grid Mask (XY)</div>
+                        <style>
+                            #grid-mask-selection-container{
+                                display:grid;
+
+                                --num-cols:3;
+                                --num-rows:3;
+
+                                --item-size:30px;
+
+                                width:100%;
+                                height:20em;
+
+                                grid-template-columns: repeat(var(--num-cols), auto);
+                                grid-template-rows: repeat(var(--num-rows), auto);
+
+                                justify-content: center;
+                                align-items: start;
+                                align-content: start;
+                            }
+                            .grid-mask-selection-item{
+                                background-color:var(--idle-color);
+                                cursor:pointer;
+
+                                height:calc( var(--item-size) - 2px );
+                                width:calc( var(--item-size) - 2px );
+                                border:1px solid black;
+                            }
+                            .grid-mask-y-header{
+                                text-align:center;
+                                font-weight:bold;
+                                transform:rotate(-90deg);
+                                transform-origin: right bottom;
+                                height:1.5em;
+                                width:1.5em;
+                                overflow: visible;
+                            }
+                            .grid-mask-y-header>div{
+                                position:absolute;
+                                height:1.5em;
+                                width:max-content;
+                                left:50%;
+                                transform:translateX(-70%);
+                            }
+                            .grid-mask-x-header{
+                                text-align:center;
+                                font-weight:bold;
+                                height:1.5em;
+                                width:max-content;
+                            }
+                        </style>
+                        <script>
+                            p.adjust_children=function(info){
+                                // assume this function is called with the objchange callback
+                                let element=info.element
+                                if(!element){
+                                    // if function was called with init-vis instead, this path should be taken
+                                    element=info
+                                }
+
+                                let num_x=this.config.grid.num_x+1
+                                let num_y=this.config.grid.num_y+1
+
+                                while(element.firstElementChild){
+                                    element.removeChild(element.firstElementChild)
+                                }
+
+                                let child_item_size=Math.min(element.offsetWidth/num_x,element.offsetHeight/num_y)
+                                element.style.setProperty("--item-size",child_item_size+"px")
+                                element.style.setProperty("--num-cols",num_x)
+                                element.style.setProperty("--num-rows",num_y)
+
+                                for(let y=0;y<num_y-1;y++){
+                                    for(let x=0;x<num_x-1;x++){
+                                        let item=this.templates.grid_mask_selection_item.cloneNode(true).firstElementChild
+                                        element.appendChild(item)
+                                    }
+                                }
+
+
+                                let blank_item=document.createElement("div")
+                                blank_item.style.setProperty("grid-column","1")
+                                blank_item.style.setProperty("grid-row","1")
+                                element.appendChild(blank_item)
+
+                                let x_header=document.createElement("div")
+                                x_header.classList.add("grid-mask-x-header")
+                                x_header.innerText="X Positions"
+                                x_header.style.setProperty("grid-column","2 / span "+(num_x-1))
+                                x_header.style.setProperty("grid-row","1")
+                                element.appendChild(x_header)
+
+                                let y_header=document.createElement("div")
+                                y_header.classList.add("grid-mask-y-header")
+                                y_header.innerHTML="<div>Y Positions</div>"
+                                y_header.style.setProperty("grid-column","1")
+                                y_header.style.setProperty("grid-row","2 / span "+(num_y-1))
+                                element.appendChild(y_header)
+                            }
+                        </script>
+                        <div id="grid-mask-selection-container" class="data" p:init-vis="adjust_children" p:on-objchange(p.config.grid)="adjust_children">
+                            <template name="grid_mask_selection_item">
+                                <div class="grid-mask-selection-item"></div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
