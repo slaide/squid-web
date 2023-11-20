@@ -169,7 +169,7 @@
                             this.check_validity(event,highlight_invalid)
                         }
                     </script>
-                    <input type="text" id="basic-config-project-name" placeholder="Please enter the Project Name" class="data" p:init="init_project_name" p:on-input="set_project_name" p:on-mouseover,focus="check_validity"/>
+                    <input type="text" id="basic-config-project-name" placeholder="Please enter the Project Name" class="data" p:init="init_project_name" p:on-input="set_project_name" p:on-mouseover,focus="check_validity" value="P19685"/>
 
                     <label class="data" p:tooltip="Name of the Well Plate. If the plate has a sticker with an ID, use that." for="basic-config-plate-name">Plate Name</label>
                     <script>
@@ -184,7 +184,7 @@
                             this.check_validity(event,highlight_invalid)
                         }
                     </script>
-                    <input type="text" id="basic-config-plate-name" placeholder="Please enter the Plate Name" class="data" p:init="init_plate_name" p:on-input="set_plate_name" p:on-mouseover,focus="check_validity"/>
+                    <input type="text" id="basic-config-plate-name" placeholder="Please enter the Plate Name" class="data" p:init="init_plate_name" p:on-input="set_plate_name" p:on-mouseover,focus="check_validity" value="AHSD-G57-PLR-24h"/>
 
                     <label class="data" for="basic-config-plate-type">Plate Type</label>
                     <script>
@@ -262,7 +262,7 @@
                             this.check_validity(event,highlight_invalid)
                         }
                     </script>
-                    <input type="text" id="basic-config-cell-line" placeholder="Please enter the Cell Line" class="data" p:init="init_cell_line" p:on-input="set_cell_line" p:on-mouseover,focus="check_validity"/>
+                    <input type="text" id="basic-config-cell-line" placeholder="Please enter the Cell Line" class="data" p:init="init_cell_line" p:on-input="set_cell_line" p:on-mouseover,focus="check_validity" value="U2OS"/>
 
                     <label class="data" p:tooltip="Base folder that will contain further folders with the images later. TODO: allow browsing the filesystem for this!" for="basic-config-base-path">Base Storage Path</label>
                     <script>
@@ -1246,23 +1246,38 @@
                         let element=info.element || info
                         element.innerText="Plate Type: "+this.config.plate_type.name
                     }
+                    p.review_set_base_path=function(info){
+                        let element=info.element || info
+                        element.innerText=this.config.base_path
+                    }
+                    p.review_set_project_name=function(info){
+                        let element=info.element || info
+                        element.innerText="Project Name: "+this.config.project_name
+                    }
+                    p.review_set_plate_name=function(info){
+                        let element=info.element || info
+                        element.innerText="Plate Name: "+this.config.plate_name
+                    }
+                    p.review_set_cell_line=function(info){
+                        let element=info.element || info
+                        element.innerText="Cell Line: "+this.config.cell_line
+                    }
                 </script>
                 <ul>
                     <li class="config-accepted data" p:on-objchange(p.config.camera_trigger)="review_set_trigger_name">Trigger: {{}}</li>
                     <li class="config-accepted data" p:on-objchange(p.config.pixel_depth)="review_set_bit_depth">Bit Depth: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.image_format)="review_set_image_format">image format: TIFF (compressed)</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.objective)="review_set_objective">camera lens: 4x Magnificiation (Olympus)</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.plate_type)="review_set_plate_type">plate type: generic 96</li>
+                    <li class="config-accepted data" p:on-objchange(p.config.image_format)="review_set_image_format">image format: {{}}</li>
+                    <li class="config-accepted data" p:on-objchange(p.config.objective)="review_set_objective">camera lens: {{}}</li>
+                    <li class="config-accepted data" p:on-objchange(p.config.plate_type)="review_set_plate_type">plate type: {{}}</li>
 
                     <li class="config-accepted data" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]">90 wells selected</li>
-                    <li class="config-accepted data" p:tooltip="[TODO: maybe combine with item above? list this selection somehoe if it differs between wells.. maybe show position within wells also?]">positions per well: 7-9</li>
+                    <li class="config-accepted data" p:tooltip="[TODO: maybe combine with item above? list this selection somehoe if it differs between wells.. maybe show position within wells also?]">positions per well: 9</li>
                     <li class="config-accepted">focus system: per-position laser autofocus</li>
 
-                    <li class="config-accepted">project name: P19685</li>
-                    <li class="config-accepted">plate name: AHSD-G57-PLR-24h</li>
-                    <li class="config-accepted">cell line: U2OS</li>
-                    <li class="config-accepted">Base Storage Path: <code>/mnt/squid</code></li>
-                    <li class="config-accepted">final output path: /mnt/squid/P19685/AHSD-G57-PLR-24h</li>
+                    <li class="config-accepted data" p:on-objchange(p.config.project_name)="review_set_project_name">project name: {{}}</li>
+                    <li class="config-accepted data" p:on-objchange(p.config.plate_name)="review_set_plate_name">plate name: {{}}</li>
+                    <li class="config-accepted data" p:on-objchange(p.config.cell_line)="review_set_cell_line">cell line: {{}}</li>
+                    <li class="config-accepted">Base Storage Path: <code class="data" p:on-objchange(p.config.base_path)="review_set_base_path">/mnt/squid</code></li>
                     <li class="config-accepted">
                         <b>imaging channels:</b>
                         <ul>
@@ -1271,8 +1286,11 @@
                             <li class="data" p:tooltip="name: Golgi ; light source: 561nm Laser ; exposure time: 54.0ms ; [TODO: add remaining information]">Golgi</li>
                         </ul>
                     </li>
+                    <br/>
+                    <li class="config-accepted">final output path: /mnt/squid/P19685/AHSD-G57-PLR-24h</li>
                     <li class="config-accepted data" p:tooltip="maximum storage required to store all images. because TIFF (compressed) is used as image file format, the actually used storage may be smaller.">max. storage used for output: 123GB</li>
                     <li class="config-accepted data" p:tooltip="estimated imaging time based on rolling dice or something. better estimate is available once imaging has started.">estimated imaging time: 1h 23m</li>
+                    <br/>
                 </ul>
                 <style>
                     #review-run-button{
