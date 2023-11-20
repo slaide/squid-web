@@ -294,19 +294,53 @@ let p={
                                             window.alert("objchange: root object not found: '"+obj_name_first_part+"'")
                                             continue
                                         }
+                                        let parent_obj=null
+                                        let last_name_part=obj_name_first_part
                                         // go through all remaining components, creating them as empty objects if they don't exist yet (or null, if they are the leaf)
                                         for(let obj_name_part of obj_name_split.slice(1)){
-                                            // if it doesn't exist yet, error
+                                            // if it doesn't exist yet, error (1/3)
                                             if(obj[obj_name_part]==null){
                                                 window.alert("objchange: object not found: '"+obj_name_part+"'")
-                                                continue
                                             }
+                                            parent_obj=obj
+                                            last_name_part=obj_name_part
+
                                             // go one level deeper
                                             obj=obj[obj_name_part]
+
+                                            // continue 'obj is null' error (2/3)
+                                            if(obj==null){
+                                                break
+                                            }
                                         }
-                                        // if the leaf is not observable, error
+                                        // continue 'obj is null' error (3/3)
+                                        if(obj==null){
+                                            continue
+                                        }
+                                        // if the leaf is not observable
                                         if(!obj.__isObservable){
-                                            window.alert("objchange: object not observable: '"+obj_name+"'")
+                                            // if it has a parent, call callback when the named property on the parent changes
+                                            if(parent_obj){
+                                                parent_obj.onChange((property, value, target) => {
+                                                    if(property==last_name_part){
+                                                        p[event_func_name]({
+                                                            property:property,
+                                                            value:value,
+                                                            target:target,
+                                                            element:element
+                                                        })
+                                                    }
+                                                    p[event_func_name]({
+                                                        property:property,
+                                                        value:value,
+                                                        target:target,
+                                                        element:element
+                                                    })
+                                                });
+                                            // if there is no parent, error
+                                            }else{
+                                                window.alert("objchange: object not observable: '"+obj_name+"'")
+                                            }
                                             continue
                                         }
 
