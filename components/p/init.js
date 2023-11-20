@@ -1,5 +1,100 @@
+/// the central 'p' object is located here. It offers global functionality to the whole page to make it more reactive and interactive
+
+/// new data can be introduced by just setting p.mynewdate=123
+/// new functions can be introduced the same way, p.myfunc=function(){...}
+/// to make data observable (more about this later), the new data needs either:
+/// - if it is set outside of any interactive components:
+/// - - needs to be an object with _observable:true, e.g. p.mynewdate={_observable:true, value:123}
+/// - if it is set inside of an interactive component:
+/// - - needs to be an wrapped manually with ObservableObject, e.g. p.mynewdate=new ObservableObject({value:123})
+
+/// to allow use of the p object inside a subtree, register the 'data' class on the subtree root element
+/// this allows the use of several shorthands and special functionality inside the subtree:
+/// - p:init='somefunc' -> calls p.somefunc(subtree_root_element) after the subtree is initialized
+/// - p:init-vis='somefunc' -> calls p.somefunc(subtree_root_element) when the subtree is first drawn (e.g. when it becomes visible)
+/// - p:on-eventname='somefunc' -> calls p.somefunc(event) when eventname is triggered on any element inside the subtree
+/// - p:on-eventname='somefunc1,somefunc2' -> calls p.somefunc1(event) and p.somefunc2(event) when eventname is triggered on any element inside the subtree
+/// - p:on-event1,event2='somefunc1,somefunc2' -> calls p.somefunc1(event) and p.somefunc2(event) when event1 or event2 is triggered on any element inside the subtree
+/// - p:tooltip='some text' -> shows a tooltip with the given text when hovering over the element
+/// - p:tooltip='#some_id' -> shows a tooltip with the innerHTML of the element with id 'some_id' when hovering over the element
+/// - p:on-attrchange(src)='somefunc' -> calls p.somefunc(element) when the src attribute of the element changes
+/// - p:on-attrchange(src,srcset)='somefunc' -> calls p.somefunc(element) when the src or srcset attribute of the element changes
+/// - p:on-objchange(p.mynewdate)='somefunc' -> calls p.somefunc(element) when the value of p.mynewdate (or any child of p.mynewdate) changes
+/// - p:on-objchange(p.mynewdate.value)='somefunc' -> calls p.somefunc(element) when the value of p.mynewdate.value changes
+/// - p:on-objchange(p.mynewdate.value,p.mynewdate2.value)='somefunc' -> calls p.somefunc(element) when the value of p.mynewdate.value or p.mynewdate2.value changes
+/// - p:on-objchange(myvar)='somefunc' -> calls p.somefunc(element) when the value of myvar (a global object of type ObservableObject) changes
+
+/// this also allows the use of templates inside the subtree:
+/// - <template name='some_template_name'>...</template> -> saves the template for later use
+/// - the template is then accessible as p.templates.some_template_name as DocumentSnippet
+
+function isObject(obj) {
+    return obj === Object(obj);
+}
+
+function make_observable(obj, parent=null) {
+    if(obj.__isObservable){
+        return obj;
+    }
+
+    obj._parent=parent
+    obj.__isObservable = true;
+    obj._callbacks=[]
+
+    obj.onChange = (cb) => {
+        obj._callbacks.push(cb);
+    }
+
+    let handler = {
+        get: (target, property) => {
+            if (isObject(target[property])) {
+                target[property]=make_observable(target[property], obj._proxy)
+            }
+
+            return target[property]
+        },
+        set: (target, property, value) => {
+            const result = Reflect.set(target, property, value);
+
+            let current_target=obj
+            while(current_target){
+                current_target._callbacks.forEach(cb=>cb(property, value, target))
+                current_target=current_target._parent
+            }
+            return result;
+        }
+    };
+
+    let proxy = new Proxy(obj, handler);
+
+    obj._proxy=proxy
+
+    return proxy;
+}
+
+/*
+// Usage example
+let c = { grid: { num_x: 2, num_y: 3 } };
+
+c = make_observable(c)
+c.onChange((prop, val, obj) => {
+    console.log(`Property ${prop} changed to ${val}`);
+})
+
+c.grid={num_x:2,num_y:3} // Triggers the callback
+
+c.grid.onChange((prop, val, obj) => {
+    console.log("grid changed!")
+})
+
+c.grid.num_x = 3; // Triggers the callback
+c.grid.num_y = 4; // Triggers the callback
+c.grid['num_z'] = 4; // Triggers the callback
+*/
+
 let p={
-    config:{},
+    config:{_observable:true},
+
     templates:{},
     observer_first_draw:new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -167,11 +262,47 @@ let p={
                                         })
                                     })
                                     attribute_change_observer.observe(element,{attributes:true})
-                                }
+                                }else if(event_name.startsWith("objchange")){
+                                    let obj_list=event_name.replace("objchange(","").replace(")","").split(",")
+                                    for(let obj_name of obj_list){
+                                        // obj_name can be any identifier, e.g. p or p.mynewdate or p.mynewdate.value, so the following code is a bit complicated:
 
-                                element.addEventListener(event_name,function(event){
-                                    p[event_func_name](event)
-                                })
+                                        // split obj_name at dots, e.g. p.mynewdate.value -> ["p","mynewdate","value"]
+                                        let obj_name_split=obj_name.split(".")
+                                        // get the first part, e.g. "p"
+                                        let obj_name_first_part=obj_name_split[0]
+                                        // look up this object in the global context
+                                        let obj=window[obj_name_first_part]
+                                        // if the root does not exist, error
+                                        if(obj==null){
+                                            window.alert("objchange: root object not found: '"+obj_name_first_part+"'")
+                                            continue
+                                        }
+                                        // go through all remaining components, creating them as empty objects if they don't exist yet (or null, if they are the leaf)
+                                        for(let obj_name_part of obj_name_split.slice(1)){
+                                            // if it doesn't exist yet, error
+                                            if(obj[obj_name_part]==null){
+                                                window.alert("objchange: object not found: '"+obj_name_part+"'")
+                                                continue
+                                            }
+                                            // go one level deeper
+                                            obj=obj[obj_name_part]
+                                        }
+                                        // if the leaf is not observable, error
+                                        if(!obj.__isObservable){
+                                            window.alert("objchange: object not observable: '"+obj_name+"'")
+                                            continue
+                                        }
+
+                                        obj.onChange((property, value, target) => {
+                                            p[event_func_name](target)
+                                        });
+                                    }
+                                }else{
+                                    element.addEventListener(event_name,function(event){
+                                        p[event_func_name](event)
+                                    })
+                                }
                             }
                         }
                     }
@@ -331,9 +462,13 @@ let p={
     }
 }
 document.addEventListener("DOMContentLoaded",function(){
+    window.p=p
     for(let key in p){
         if(typeof p[key] === 'function'){
             p[key]=p[key].bind(p)
+        }
+        if(p[key]._observable){
+            p[key]=make_observable(p[key])
         }
     }
     p.init()
