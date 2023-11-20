@@ -8,8 +8,8 @@
 /// - if it is set inside of an interactive component:
 /// - - needs to be an wrapped manually with ObservableObject, e.g. p.mynewdate=new ObservableObject({value:123})
 
-/// to allow use of the p object inside a subtree, register the 'data' class on the subtree root element
-/// this allows the use of several shorthands and special functionality inside the subtree:
+/// the p object is only accessible to an element if it has the class 'data', i.e. not to the whole subtree (!)
+/// this allows the use of several shorthands and special functionality for the element:
 /// - p:init='somefunc' -> calls p.somefunc(subtree_root_element) after the subtree is initialized
 /// - p:init-vis='somefunc' -> calls p.somefunc(subtree_root_element) when the subtree is first drawn (e.g. when it becomes visible)
 /// - p:on-eventname='somefunc' -> calls p.somefunc(event) when eventname is triggered on any element inside the subtree
@@ -24,9 +24,9 @@
 /// - p:on-objchange(p.mynewdate.value,p.mynewdate2.value)='somefunc' -> calls p.somefunc(element) when the value of p.mynewdate.value or p.mynewdate2.value changes
 /// - p:on-objchange(myvar)='somefunc' -> calls p.somefunc(element) when the value of myvar (a global object of type ObservableObject) changes
 
-/// this also allows the use of templates inside the subtree:
+/// the one single exception (currently) to this rule are templates, which are lifted out of a subtree and saved in p.templates:
 /// - <template name='some_template_name'>...</template> -> saves the template for later use
-/// - the template is then accessible as p.templates.some_template_name as DocumentSnippet
+/// - the template is then accessible as p.templates.some_template_name as DocumentSnippet (only after the initialization of the subtree is complete, i.e. it is not immediately available in p:init, but e.g. in p:init-vis)
 
 function isObject(obj) {
     return obj === Object(obj);
@@ -54,9 +54,23 @@ function make_observable(obj, parent=null) {
             return target[property]
         },
         set: (target, property, value) => {
+            let current_target=obj
+
+            if (isObject(value)) {
+                value=make_observable(value, obj._proxy)
+                current_target=value
+
+                let old_value=target[property]
+
+                // if there was an object before, inherit its callbacks
+                if (isObject(old_value)) {
+                    for(let cb of old_value._callbacks){
+                        value.onChange(cb)
+                    }
+                }
+            }
             const result = Reflect.set(target, property, value);
 
-            let current_target=obj
             while(current_target){
                 current_target._callbacks.forEach(cb=>cb(property, value, target))
                 current_target=current_target._parent
@@ -93,7 +107,9 @@ c.grid['num_z'] = 4; // Triggers the callback
 */
 
 let p={
-    config:{_observable:true},
+    config:{
+        _observable:true,
+    },
 
     templates:{},
     observer_first_draw:new IntersectionObserver((entries) => {
@@ -295,7 +311,12 @@ let p={
                                         }
 
                                         obj.onChange((property, value, target) => {
-                                            p[event_func_name](target)
+                                            p[event_func_name]({
+                                                property:property,
+                                                value:value,
+                                                target:target,
+                                                element:element
+                                            })
                                         });
                                     }
                                 }else{
