@@ -1567,6 +1567,9 @@
                         display:none;
                     }
                     .tooltip-container{
+                        width:auto;
+                        max-width:40vw;
+
                         position:absolute;
                         z-index:100;
                         background:white;
@@ -1586,8 +1589,36 @@
                     p.init_tooltip=function(element){
                         /// actually init element position to top center of the element that it is attached to
                         let rect=element.element_anker.getBoundingClientRect()
-                        element.style.left=rect.left+rect.width/2+"px"
+
+                        let left_offset=rect.left+rect.width/2
+                        let top_offset=rect.top
+                    
+                        element.style.left=left_offset+"px"
                         element.style.top=rect.top +"px"
+
+                        // if tooltip is outside the viewport, shove it back in
+                        let tooltip_rect=element.getBoundingClientRect()
+
+                        let left_min=tooltip_rect.width/2
+                        let right_min=tooltip_rect.width/2
+
+                        // check left
+                        if(tooltip_rect.left<0){
+                            element.style.left=left_min+"px"
+                        }
+                        // check right
+                        if(tooltip_rect.right<0){
+                            element.style.right=right_min+"px"
+                        }
+                        // check top
+                        if(tooltip_rect.top<0){
+                            element.style.top="0px"
+                        }
+                        // check bottom
+                        if(tooltip_rect.bottom<0){
+                            element.style.bottom="0px"
+                        }
+
                     }.bind(p)
                 </script>
                 <template name="tooltip">

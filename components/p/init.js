@@ -221,7 +221,7 @@ let p={
         let tooltip_el=event.currentTarget.tooltip_element
         tooltip_el.visibility_timer=setTimeout((() => {
             this.tooltip_cancel(tooltip_el)
-        }).bind(this), 1000);
+        }).bind(this), 4000);
     },
     tooltip_cancel(tooltip_el){
         clearTimeout(tooltip_el.visibility_timer)
