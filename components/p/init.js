@@ -44,6 +44,41 @@ function make_observable(obj, parent=null) {
     obj.onChange = (cb) => {
         obj._callbacks.push(cb);
     }
+    obj.copyRaw=function(){
+        // this function strips the proxy from the object (and all its attributes, recursively) and returns the raw object
+
+        if(Array.isArray(obj)){
+            let raw_arr=[]
+            for(let element of obj){
+                if(isObject(element)){
+                    raw_arr.push(element.copyRaw())
+                }else{
+                    raw_arr.push(element)
+                }
+            }
+            return raw_arr
+        }
+
+        let raw_obj={}
+        for(let key in obj){
+            if(key.startsWith("_")){
+                continue
+            }
+
+            // if the attribute is callable, skip
+            if(typeof obj[key] === 'function'){
+                continue
+            }
+
+            if(isObject(obj[key])){
+                raw_obj[key]=obj[key].copyRaw()
+            }else{
+                raw_obj[key]=obj[key]
+            }
+        }
+
+        return raw_obj
+    }
 
     let handler = {
         get: (target, property) => {
@@ -109,6 +144,7 @@ c.grid['num_z'] = 4; // Triggers the callback
 let p={
     config:{
         _observable:true,
+        well_selection:[],
     },
 
     templates:{},
