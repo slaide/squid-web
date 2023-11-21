@@ -708,9 +708,6 @@
                 </div>
 
                 <script>
-                    p.toggle_well_selection_status=function(element){
-
-                    }
                     p.get_num_selected_wells=function(){
                         let num_selected_wells=0
                         if(this.config.well_selection){
@@ -1194,7 +1191,23 @@
                 <div id="channel-container" class="data">
                     <template name="channel_config_item">
                         <div class="channel-config-item">
-                            <input class="col-3 channel-config-item-name data" p:tooltip="Name of this channel (used for metadata only). This should be the name of dye. Use the name of the organelle only if there is no dye in this channel." type="text" placeholder="Enter Channel Name"/>
+                            <script>
+                                p.validate_channel_name=function(event){
+                                    element=event.currentTarget
+                                    if(!element){
+                                        element=event
+                                    }
+                                    if(element.value.length==0){
+                                        element.classList.add("invalid")
+                                        element.setCustomValidity("Channel name must not be empty.")
+                                        element.reportValidity()
+                                    }else{
+                                        element.classList.remove("invalid")
+                                        element.setCustomValidity("")
+                                    }
+                                }
+                            </script>
+                            <input class="col-3 channel-config-item-name data" p:tooltip="Name of this channel (used for metadata only). This should be the name of dye. Use the name of the organelle only if there is no dye in this channel." type="text" p:init-vis="validate_channel_name" p:on-input="validate_channel_name" placeholder="Enter Channel Name"/>
 
                             <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
 
@@ -1487,13 +1500,16 @@
                     }
                 </style>
                 <div>
-                    <h2>server status:</h2>
+                    <h2>Server Status:</h2>
                     <br/>
                     <ul>
-                        <li>Config accepted.</li>
-                        <li>Microscope idle.</li>
+                        <li>Config accepted</li>
+                        <li>Microscope idle</li>
                     </ul>
                 </div>
+
+                <br/>
+
                 <button id="review-run-button">RUN (the acquisition)</button>
             </div>
 
