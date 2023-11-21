@@ -517,6 +517,15 @@
                             }
                         }
 
+                        this.config.well_selection=[]
+                        for(let y=0;y<this.config.plate_type.well_count_y;y++){
+                            let row=[]
+                            for(let x=0;x<this.config.plate_type.well_count_x;x++){
+                                row.push(false)
+                            }
+                            this.config.well_selection.push(row)
+                        }
+
                         // make the children invisible to only get the size of the container, without any potential distortion from the children
                         for(var child of element.children){
                             child.style.display="none"
@@ -537,6 +546,24 @@
                             child.style.setProperty("--well-size",well_size+"px")
                             child.style.display=null
                         }
+                    }
+                    p.well_set_selected=function(element){
+                        let well_row=element.getAttribute("plate-row")
+                        let well_col=element.getAttribute("plate-col")
+                        element.classList.add('selected')
+                        this.config.well_selection[well_row-1][well_col-1]=true
+                    }
+                    p.well_set_unselected=function(element){
+                        let well_row=element.getAttribute("plate-row")
+                        let well_col=element.getAttribute("plate-col")
+                        element.classList.remove('selected')
+                        this.config.well_selection[well_row-1][well_col-1]=false
+                    }
+                    p.well_toggle_selection=function(element){
+                        let well_row=element.getAttribute("plate-row")
+                        let well_col=element.getAttribute("plate-col")
+                        element.classList.toggle('selected')
+                        this.config.well_selection[well_row-1][well_col-1]=!this.config.well_selection[well_row-1][well_col-1]
                     }
                     p.get_wells_from_current=function(element){
                         /// get all wells that are affected by the current interaction
@@ -608,9 +635,9 @@
                             
                             // actually (de-)select the wells in the highlighted area
                             if(all_selected){
-                                well.classList.remove("selected")
+                                this.well_set_unselected(well)
                             }else{
-                                well.classList.add("selected")
+                                this.well_set_selected(well)
                             }
                         }
                         
@@ -681,6 +708,22 @@
                 </div>
 
                 <script>
+                    p.toggle_well_selection_status=function(element){
+
+                    }
+                    p.get_num_selected_wells=function(){
+                        let num_selected_wells=0
+                        if(this.config.well_selection){
+                            for(let row of this.config.well_selection){
+                                for(let well of row){
+                                    if(well){
+                                        num_selected_wells++
+                                    }
+                                }
+                            }
+                        }
+                        return num_selected_wells
+                    }
                     p.select_every_second_well=function(event){
                         let well_container=event.currentTarget.parentElement.parentElement.querySelector("#well-selection-container")
                         let well_elements=well_container.querySelectorAll(`[plate-col]:not([plate-col="0"])[plate-row]:not([plate-row="0"])`)
@@ -697,14 +740,16 @@
                             let col_even=col%2==0
                             if((row_even ^ col_even)==begin_index){
                                 well.classList.add("selected")
+                                p.config.well_selection[row-1][col-1]=true
                             }else{
                                 well.classList.remove("selected")
+                                p.config.well_selection[row-1][col-1]=false
                             }
                         }
                     }
                 </script>
                 <div style="grid-row:2;">
-                    <label>select every second well:</label>
+                    <label>Select wells in checkerboard pattern:</label>
                     <button class="data" p:on-click="select_every_second_well" selection_offset="0">starting at A1</button>
                     <button class="data" p:on-click="select_every_second_well" selection_offset="1">starting at A2</button>
                 </div>
@@ -1237,44 +1282,46 @@
             </div>
 
             <style>
-                #tab-config-summary>ul>li{
-                    list-style-type: none; /* Removes default list style */
-                    padding:0;
-                    margin:0;
-                }
-
-                #tab-config-summary>ul>li.config-accepted::before {
+                #tab-config-summary .config-accepted::before {
+                    display:inline-block;
                     content: "\2713 "; /* Unicode for checkmark */
                     color: green; /* Color for checkmark */
+                    padding-left:0.5em;
+                    padding-right:0.5em;
                 }
 
-                #tab-config-summary>ul>li.config-rejected::before,#tab-config-summary>ul>li:not(.config-accepted)::before {
+                #tab-config-summary .config-rejected::before,#tab-config-summary>ul>:not(.config-accepted)::before {
+                    display:inline-block;
                     content: "\2717 "; /* Unicode for cross */
                     color: red; /* Color for cross */
+                    padding-left:0.5em;
+                    padding-right:0.5em;
                 }
             </style>
             <div class="tab-body data" tab-name="review" id="tab-config-summary">
                 <h2>config summary:</h2>
+                <br/>
+
                 <script>
                     p.review_set_trigger_name=function(info){
                         let element=info.element || info
-                        element.innerText="Trigger: "+this.config.camera_trigger.name
+                        element.innerText=this.config.camera_trigger.name
                     }
                     p.review_set_bit_depth=function(info){
                         let element=info.element || info
-                        element.innerText="Pixel Depth: "+this.config.pixel_depth.name
+                        element.innerText=this.config.pixel_depth.name
                     }
                     p.review_set_image_format=function(info){
                         let element=info.element || info
-                        element.innerText="Image Format: "+this.config.image_format.name
+                        element.innerText=this.config.image_format.name
                     }
                     p.review_set_objective=function(info){
                         let element=info.element || info
-                        element.innerText="Camera Lens: "+this.config.objective.name
+                        element.innerText=this.config.objective.name
                     }
                     p.review_set_plate_type=function(info){
                         let element=info.element || info
-                        element.innerText="Plate Type: "+this.config.plate_type.name
+                        element.innerText=this.config.plate_type.name
                     }
                     p.review_set_base_path=function(info){
                         let element=info.element || info
@@ -1282,46 +1329,156 @@
                     }
                     p.review_set_project_name=function(info){
                         let element=info.element || info
-                        element.innerText="Project Name: "+this.config.project_name
+                        element.innerText=this.config.project_name
                     }
                     p.review_set_plate_name=function(info){
                         let element=info.element || info
-                        element.innerText="Plate Name: "+this.config.plate_name
+                        element.innerText=this.config.plate_name
                     }
                     p.review_set_cell_line=function(info){
                         let element=info.element || info
-                        element.innerText="Cell Line: "+this.config.cell_line
+                        element.innerText=this.config.cell_line
+                    }
+                    p.review_set_wells_selected=function(info){
+                        let element=info.element || info
+                        element.innerText=this.get_num_selected_wells()+" wells selected"
                     }
                 </script>
-                <ul>
-                    <li class="config-accepted data" p:on-objchange(p.config.camera_trigger)="review_set_trigger_name">Trigger: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.pixel_depth)="review_set_bit_depth">Bit Depth: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.image_format)="review_set_image_format">image format: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.objective)="review_set_objective">camera lens: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.plate_type)="review_set_plate_type">plate type: {{}}</li>
+                <style>
+                    #review-item-table{
+                        display:grid;
+                        grid-template-columns: auto auto 1fr;
+                    }
+                </style>
+                <div id="review-item-table">
+                    <div class="config-accepted"></div>
+                    <div>Trigger:</div>
+                    <div class="data" p:on-objchange(p.config.camera_trigger)="review_set_trigger_name"></div>
 
-                    <li class="config-accepted data" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]">90 wells selected</li>
-                    <li class="config-accepted data" p:tooltip="[TODO: maybe combine with item above? list this selection somehoe if it differs between wells.. maybe show position within wells also?]">positions per well: 9</li>
-                    <li class="config-accepted">focus system: per-position laser autofocus</li>
+                    <div class="config-accepted"></div>
+                    <div>Pixel Depth:</div>
+                    <div class="data" p:on-objchange(p.config.pixel_depth)="review_set_bit_depth"></div>
 
-                    <li class="config-accepted data" p:on-objchange(p.config.project_name)="review_set_project_name">project name: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.plate_name)="review_set_plate_name">plate name: {{}}</li>
-                    <li class="config-accepted data" p:on-objchange(p.config.cell_line)="review_set_cell_line">cell line: {{}}</li>
-                    <li class="config-accepted">Base Storage Path: <code class="data" p:on-objchange(p.config.base_path)="review_set_base_path">/mnt/squid</code></li>
-                    <li class="config-accepted">
-                        <b>imaging channels:</b>
-                        <ul>
+                    <div class="config-accepted"></div>
+                    <div>Image Format:</div>
+                    <div class="data" p:on-objchange(p.config.image_format)="review_set_image_format"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>Camera Lens:</div>
+                    <div class="data" p:on-objchange(p.config.objective)="review_set_objective"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>Plate Type:</div>
+                    <div class="data" p:on-objchange(p.config.plate_type)="review_set_plate_type"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>num wells selected:</div>
+                    <div class="data" p:init="review_set_wells_selected" p:on-objchange(p.config.well_selection)="review_set_wells_selected" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>Positions per well:</div>
+                    <div class="data" p:tooltip="[TODO: show essentially screenshot or something of the grid mask ]">9</div>
+
+                    <div class="config-accepted"></div>
+                    <div>Focus System:</div>
+                    <div class="data">per-position laser autofocus</div>
+
+                    <div class="config-accepted"></div>
+                    <div>Project Name:</div>
+                    <div class="data" p:on-objchange(p.config.project_name)="review_set_project_name"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>Plate Name:</div>
+                    <div class="data" p:on-objchange(p.config.plate_name)="review_set_plate_name"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>Cell Line:</div>
+                    <div class="data" p:on-objchange(p.config.cell_line)="review_set_cell_line"></div>
+
+                    <div class="config-accepted"></div>
+                    <div>Base Storage Path:</div>
+                    <div><code class="data" p:on-objchange(p.config.base_path)="review_set_base_path">/mnt/squid</code></div>
+
+                    <div class="config-accepted"></div>
+                    <div>imaging channels:</div>
+                    <div class="">
+                        <ol class="">
                             <li class="data" p:tooltip="name: Nucleus ; light source: 405nm Laser ; exposure time: 4.5ms ; [TODO: add remaining information]">Nucleus</li>
                             <li class="data" p:tooltip="name: ER ; light source: 488nm Laser ; exposure time: 13.0ms ; [TODO: add remaining information]">ER</li>
                             <li class="data" p:tooltip="name: Golgi ; light source: 561nm Laser ; exposure time: 54.0ms ; [TODO: add remaining information]">Golgi</li>
-                        </ul>
-                    </li>
-                    <br/>
-                    <li class="config-accepted">final output path: /mnt/squid/P19685/AHSD-G57-PLR-24h</li>
-                    <li class="config-accepted data" p:tooltip="maximum storage required to store all images. because TIFF (compressed) is used as image file format, the actually used storage may be smaller.">max. storage used for output: 123GB</li>
-                    <li class="config-accepted data" p:tooltip="estimated imaging time based on rolling dice or something. better estimate is available once imaging has started.">estimated imaging time: 1h 23m</li>
-                    <br/>
-                </ul>
+                        </ol>
+                    </div>
+
+                    <div></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="config-accepted"></div>
+                    <div>final output path:</div>
+                    <script>
+                        p.set_review_full_output_path=function(info){
+                            fetch('/api/fullPathName', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(this.config.copyRaw()) // if you need to send a payload
+                            }).then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json(); // or response.text() if the response is not JSON // <- this is a Response object, which is awaited through the .then
+                            }).then((data)=>{
+                                info.element.innerText=data.full_output_path
+                            }).catch(error => {
+                                console.error('There was a problem with the fetch operation:', error);
+                            });
+                        }
+                        p.set_review_storage_required=function(info){
+                            fetch('/api/requiredStorage', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(this.config.copyRaw()) // if you need to send a payload
+                            }).then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json(); // or response.text() if the response is not JSON // <- this is a Response object, which is awaited through the .then
+                            }).then((data)=>{
+                                let data_as_kbytes=data.max_required_storage/1024
+                                let data_as_Mbytes=data_as_kbytes/1024
+                                let data_as_Gbytes=data_as_Mbytes/1024
+                                let data_as_Tbytes=data_as_Gbytes/1024
+
+                                if(data_as_Mbytes<1){
+                                    info.element.innerText=data_as_kbytes.toFixed(2)+" kB"
+                                }else if(data_as_Gbytes<1){
+                                    info.element.innerText=data_as_Mbytes.toFixed(2)+" MB"
+                                }else if(data_as_Tbytes<1){
+                                    info.element.innerText=data_as_Gbytes.toFixed(2)+" GB"
+                                }else{
+                                    info.element.innerText=data_as_Tbytes.toFixed(2)+" TB"
+                                }
+                            }).catch(error => {
+                                console.error('There was a problem with the fetch operation:', error);
+                            });
+                        }
+                    </script>
+                    <div class="data" p:on-objchange(p.config)="set_review_full_output_path"></div>
+                    
+                    <div class="config-accepted"></div>
+                    <div>max. storage used for output:</div>
+                    <div class="data" p:on-objchange(p.config)="set_review_storage_required" p:tooltip="maximum storage required to store all images. because TIFF (compressed) is used as image file format, the actually used storage may be smaller.">123GB</div>
+
+                    <div class="config-accepted"></div>
+                    <div>estimated imaging time:</div>
+                    <div class="data" p:tooltip="estimated imaging time based on rolling dice or something. better estimate is available once imaging has started.">1h 23m</div>
+                </div>
+
+                <br/>
+
                 <style>
                     #review-run-button{
                         padding:1em;
@@ -1329,7 +1486,14 @@
                         border:1px solid black;
                     }
                 </style>
-                <div>server status: Config accepted. Microscope idle.</div>
+                <div>
+                    <h2>server status:</h2>
+                    <br/>
+                    <ul>
+                        <li>Config accepted.</li>
+                        <li>Microscope idle.</li>
+                    </ul>
+                </div>
                 <button id="review-run-button">RUN (the acquisition)</button>
             </div>
 
