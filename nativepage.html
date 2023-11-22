@@ -950,6 +950,9 @@
                                 width:calc( var(--item-size) - 2px );
                                 border:1px solid black;
                             }
+                            .grid-mask-selection-item.selected{
+                                background-color:var(--active-color);
+                            }
                             .grid-mask-y-header{
                                 text-align:center;
                                 font-weight:bold;
@@ -990,6 +993,8 @@
                                 let num_x=this.config.grid.num_x+1
                                 let num_y=this.config.grid.num_y+1
 
+                                this.config.grid.mask=[]
+
                                 while(element.firstElementChild){
                                     element.removeChild(element.firstElementChild)
                                 }
@@ -1000,10 +1005,17 @@
                                 element.style.setProperty("--num-rows",num_y)
 
                                 for(let y=0;y<num_y-1;y++){
+                                    let row=[]
                                     for(let x=0;x<num_x-1;x++){
                                         let item=this.templates.grid_mask_selection_item.cloneNode(true).firstElementChild
                                         element.appendChild(item)
+
+                                        item.setAttribute("grid-row",y)
+                                        item.setAttribute("grid-col",x)
+
+                                        row.push(true)
                                     }
+                                    this.config.grid.mask.push(row)
                                 }
 
                                 let blank_item=document.createElement("div")
@@ -1025,10 +1037,16 @@
                                 y_header.style.setProperty("grid-row","2 / span "+(num_y-1))
                                 element.appendChild(y_header)
                             }
+                            p.grid_mask_item_toggle=function(event){
+                                event.currentTarget.classList.toggle("selected")
+                                let grid_row=event.currentTarget.getAttribute("grid-row")
+                                let grid_col=event.currentTarget.getAttribute("grid-col")
+                                this.config.grid.mask[grid_row][grid_col]=!this.config.grid.mask[grid_row][grid_col]
+                            }
                         </script>
-                        <div id="grid-mask-selection-container" class="data" p:init-vis="adjust_children" p:on-objchange(p.config.grid)="adjust_children">
+                        <div id="grid-mask-selection-container" class="data" p:init-vis="adjust_children" p:on-objchange(p.config.grid.num_x&p.config.grid.num_y)="adjust_children">
                             <template name="grid_mask_selection_item">
-                                <div class="grid-mask-selection-item"></div>
+                                <div class="grid-mask-selection-item selected data" p:on-click="grid_mask_item_toggle"></div>
                             </template>
                         </div>
                     </div>
@@ -1312,7 +1330,7 @@
                 }
             </style>
             <div class="tab-body data" tab-name="review" id="tab-config-summary">
-                <h2>config summary:</h2>
+                <h2>Acquisition Summary:</h2>
                 <br/>
 
                 <script>
@@ -1356,6 +1374,23 @@
                         let element=info.element || info
                         element.innerText=this.get_num_selected_wells()+" wells selected"
                     }
+                    p.review_set_grid_positions=function(info){
+                        let element=info.element || info
+                        // get number of selected items in the grid mask
+                        let num_selections_in_mask=0
+                        if(this.config.grid.mask){
+                            for(let row of this.config.grid.mask){
+                                for(let item of row){
+                                    if(item){
+                                        num_selections_in_mask++
+                                    }
+                                }
+                            }
+                        }
+                        // calculate total number of positions per wlel
+                        let num_total_positions_per_well=num_selections_in_mask*this.config.grid.num_z*this.config.grid.num_t
+                        element.innerText=`${num_total_positions_per_well} ( x: ${this.config.grid.num_x} , y: ${this.config.grid.num_y} , z: ${this.config.grid.num_z} , t: ${this.config.grid.num_t} , mask: ${num_selections_in_mask}/${this.config.grid.num_x*this.config.grid.num_y})`
+                    }
                 </script>
                 <style>
                     #review-item-table{
@@ -1366,23 +1401,23 @@
                 <div id="review-item-table">
                     <div class="config-accepted"></div>
                     <div>Trigger:</div>
-                    <div class="data" p:on-objchange(p.config.camera_trigger)="review_set_trigger_name"></div>
+                    <div class="data" p:init="review_set_trigger_name" p:on-objchange(p.config.camera_trigger)="review_set_trigger_name"></div>
 
                     <div class="config-accepted"></div>
                     <div>Pixel Depth:</div>
-                    <div class="data" p:on-objchange(p.config.pixel_depth)="review_set_bit_depth"></div>
+                    <div class="data" p:init="review_set_bit_depth" p:on-objchange(p.config.pixel_depth)="review_set_bit_depth"></div>
 
                     <div class="config-accepted"></div>
                     <div>Image Format:</div>
-                    <div class="data" p:on-objchange(p.config.image_format)="review_set_image_format"></div>
+                    <div class="data" p:init="review_set_image_format" p:on-objchange(p.config.image_format)="review_set_image_format"></div>
 
                     <div class="config-accepted"></div>
                     <div>Camera Lens:</div>
-                    <div class="data" p:on-objchange(p.config.objective)="review_set_objective"></div>
+                    <div class="data" p:init="review_set_objective" p:on-objchange(p.config.objective)="review_set_objective"></div>
 
                     <div class="config-accepted"></div>
                     <div>Plate Type:</div>
-                    <div class="data" p:on-objchange(p.config.plate_type)="review_set_plate_type"></div>
+                    <div class="data" p:init="review_set_plate_type" p:on-objchange(p.config.plate_type)="review_set_plate_type"></div>
 
                     <div class="config-accepted"></div>
                     <div>num wells selected:</div>
@@ -1390,7 +1425,7 @@
 
                     <div class="config-accepted"></div>
                     <div>Positions per well:</div>
-                    <div class="data" p:tooltip="[TODO: show essentially screenshot or something of the grid mask ]">9</div>
+                    <div class="data" p:init="review_set_grid_positions" p:on-objchange(p.config.grid)="review_set_grid_positions" p:tooltip="[TODO: show essentially screenshot or something of the grid mask ]">9</div>
 
                     <div class="config-accepted"></div>
                     <div>Focus System:</div>
@@ -1398,19 +1433,19 @@
 
                     <div class="config-accepted"></div>
                     <div>Project Name:</div>
-                    <div class="data" p:on-objchange(p.config.project_name)="review_set_project_name"></div>
+                    <div class="data" p:init="review_set_project_name" p:on-objchange(p.config.project_name)="review_set_project_name"></div>
 
                     <div class="config-accepted"></div>
                     <div>Plate Name:</div>
-                    <div class="data" p:on-objchange(p.config.plate_name)="review_set_plate_name"></div>
+                    <div class="data" p:init="review_set_plate_name" p:on-objchange(p.config.plate_name)="review_set_plate_name"></div>
 
                     <div class="config-accepted"></div>
                     <div>Cell Line:</div>
-                    <div class="data" p:on-objchange(p.config.cell_line)="review_set_cell_line"></div>
+                    <div class="data" p:init="review_set_cell_line" p:on-objchange(p.config.cell_line)="review_set_cell_line"></div>
 
                     <div class="config-accepted"></div>
                     <div>Base Storage Path:</div>
-                    <div><code class="data" p:on-objchange(p.config.base_path)="review_set_base_path">/mnt/squid</code></div>
+                    <div><code class="data" p:init="review_set_base_path" p:on-objchange(p.config.base_path)="review_set_base_path">/mnt/squid</code></div>
 
                     <div class="config-accepted"></div>
                     <div>imaging channels:</div>
@@ -1442,7 +1477,8 @@
                                 }
                                 return response.json(); // or response.text() if the response is not JSON // <- this is a Response object, which is awaited through the .then
                             }).then((data)=>{
-                                info.element.innerText=data.full_output_path
+                                let element=(info.element||info)
+                                element.innerText=data.full_output_path
                             }).catch(error => {
                                 console.error('There was a problem with the fetch operation:', error);
                             });
@@ -1465,25 +1501,26 @@
                                 let data_as_Gbytes=data_as_Mbytes/1024
                                 let data_as_Tbytes=data_as_Gbytes/1024
 
+                                let element=(info.element||info)
                                 if(data_as_Mbytes<1){
-                                    info.element.innerText=data_as_kbytes.toFixed(2)+" kB"
+                                    element.innerText=data_as_kbytes.toFixed(2)+" kB"
                                 }else if(data_as_Gbytes<1){
-                                    info.element.innerText=data_as_Mbytes.toFixed(2)+" MB"
+                                    element.innerText=data_as_Mbytes.toFixed(2)+" MB"
                                 }else if(data_as_Tbytes<1){
-                                    info.element.innerText=data_as_Gbytes.toFixed(2)+" GB"
+                                    element.innerText=data_as_Gbytes.toFixed(2)+" GB"
                                 }else{
-                                    info.element.innerText=data_as_Tbytes.toFixed(2)+" TB"
+                                    element.innerText=data_as_Tbytes.toFixed(2)+" TB"
                                 }
                             }).catch(error => {
                                 console.error('There was a problem with the fetch operation:', error);
                             });
                         }
                     </script>
-                    <div class="data" p:on-objchange(p.config)="set_review_full_output_path"></div>
+                    <div class="data" p:init="set_review_full_output_path" p:on-objchange(p.config)="set_review_full_output_path"></div>
                     
                     <div class="config-accepted"></div>
                     <div>max. storage used for output:</div>
-                    <div class="data" p:on-objchange(p.config)="set_review_storage_required" p:tooltip="maximum storage required to store all images. because TIFF (compressed) is used as image file format, the actually used storage may be smaller.">123GB</div>
+                    <div class="data" p:init="set_review_storage_required" p:on-objchange(p.config)="set_review_storage_required" p:tooltip="maximum storage required to store all images. because TIFF (compressed) is used as image file format, the actually used storage may be smaller.">123GB</div>
 
                     <div class="config-accepted"></div>
                     <div>estimated imaging time:</div>
