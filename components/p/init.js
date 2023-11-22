@@ -216,12 +216,16 @@ let p={
 
         return imageData
     },
-    tooltip_begin(event){
-        let tooltip_el=event.currentTarget.tooltip_element
+
+    tooltip_time_to_display_ms:500,
+    tooltip_time_to_hide_ms:500,
+    tooltip_begin(event,skip_timeout=false){
+        let event_target=event.currentTarget
+        let tooltip_el=event_target.tooltip_element
         if(!tooltip_el){
             tooltip_el=this.templates.tooltip.cloneNode(true).children[0]
 
-            let tooltip_text=event.currentTarget.getAttribute("p:tooltip")
+            let tooltip_text=event_target.getAttribute("p:tooltip")
             // if tooltip references a whole element, use its innerHTML as tooltip text, and remove that element from its parent
             if(tooltip_text.startsWith("#")){
                 let tooltip_text_element=document.querySelector(tooltip_text)
@@ -233,32 +237,82 @@ let p={
                 tooltip_el.innerHTML=tooltip_text
             }
 
-            tooltip_el.element_anker=event.currentTarget
-            event.currentTarget.tooltip_element=tooltip_el
+            tooltip_el.element_anker=event_target
+            event_target.tooltip_element=tooltip_el
         }
 
+        function clear_timers_to_visible(){
+            if(this.tooltip_timer_to_visible){
+                clearTimeout(this.tooltip_timer_to_visible)
+                this.tooltip_timer_to_visible=null
+            }
+
+            if(tooltip_el.timer_to_visible){
+                clearTimeout(tooltip_el.timer_to_visible)
+                tooltip_el.timer_to_visible=null
+            }
+        }
+
+        if(!skip_timeout){
+            // if timer is already running, don't start another one
+            if(tooltip_el.timer_to_visible && this.tooltip_timer_to_visible===tooltip_el.timer_to_visible){
+                return
+            }
+
+            if(this.tooltip_timer_to_visible!==tooltip_el.timer_to_visible){
+                clearTimeout(this.tooltip_timer_to_visible)
+                this.tooltip_timer_to_visible=null
+            }
+
+            // event.currentTarget is null inside the timeout, so we need to save it here
+            let escaping_event={currentTarget:event_target}
+
+            // start timer where if the pointer is hovered over the element for this long, the tooltip is displayed
+            tooltip_el.timer_to_visible=setTimeout(function(){
+                p.tooltip_begin(escaping_event,true)
+            },this.tooltip_time_to_display_ms)
+            this.tooltip_timer_to_visible=tooltip_el.timer_to_visible
+
+            // disable the timer if the pointer leaves the element
+            // (and remove the event listener, so it doesn't get called multiple times)
+            function onmouseleave(event){
+                event_target.removeEventListener("mouseleave",onmouseleave)
+                clear_timers_to_visible()
+            }
+            event_target.addEventListener("mouseleave",onmouseleave)
+
+            return
+        }
+
+        clear_timers_to_visible()
+
+        document.body.appendChild(tooltip_el)
         if(this.active_tooltip){
             this.tooltip_cancel(this.active_tooltip)
         }
 
-        document.body.appendChild(tooltip_el)
-
         this.active_tooltip=tooltip_el
     },
     tooltip_end(event){
+        /// this is called when the mouse leaves the element where the tooltip was triggered
         let tooltip_el=event.currentTarget.tooltip_element
         tooltip_el.visibility_timer=setTimeout((() => {
             this.tooltip_cancel(tooltip_el)
-        }).bind(this), 4000);
+        }).bind(this), this.tooltip_time_to_hide_ms);
     },
     tooltip_cancel(tooltip_el){
         clearTimeout(tooltip_el.visibility_timer)
         tooltip_el.visibility_timer=null
 
-        tooltip_el.parentElement.removeChild(tooltip_el)
+        if(tooltip_el.parentElement){
+            tooltip_el.parentElement.removeChild(tooltip_el)
+        }
 
-        this.active_tooltip=null
+        if(this.active_tooltip===tooltip_el){
+            this.active_tooltip=null
+        }
     },
+
     init(subtree=document,include_root=false){
         if(subtree.querySelectorAll){
             // get list of elements to process
