@@ -423,6 +423,12 @@
                 <style>
                     #well-selection-container{
                         width:100%;
+                        height:100%;
+                    }
+                    #well-selection-area{
+                        width:100%;
+                        height:100%;
+                        
                         display:grid;
 
                         grid-template-columns: repeat(var(--num-columns), auto);
@@ -436,7 +442,9 @@
                         overflow: hidden;
                     }
                     .well-item{
-                        border: 1px solid black;
+                        --border-size: 0.2em;
+                        background-repeat: no-repeat;
+                        padding: var(--border-size); /* this will be your border width */
 
                         background-color:white;
                         cursor:pointer;
@@ -444,10 +452,10 @@
                         user-select:none;
                         position:relative;
 
-                        font-size:calc(var(--well-size) * 0.4);
-
-                        width:var(--well-size);
-                        height:var(--well-size);
+                        width:calc( var(--well-size) - ( var(--border-size) * 2 ) );
+                        height:calc( var(--well-size) - ( var(--border-size) * 2 ) );
+                        --width:var(--well-size);
+                        --height:var(--well-size);
 
                         --default-background:var(--idle-color);
                         --highlight-color:red;
@@ -455,12 +463,28 @@
 
                         --background:var(--default-background);
 
-                        background:var(--background);
+                        --border-size-left:0;
+                        --border-size-right:0;
+                        --border-size-top:0;
+                        --border-size-bottom:0;
 
-                        --transition-border:20%;
+                        background: 
+                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat left / var(--border-size-left) 100%,
+                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat right / var(--border-size-right) 100%,
+                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat top / 100% var(--border-size-top),
+                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat bottom / 100% var(--border-size-bottom),
+                            var(--background);
                     }
                     .well-item[plate-col="0"],.well-item[plate-row="0"]{
                         --default-background:white;
+
+                        font-size:calc(var(--well-size) * 0.6);
+                    }
+                    .well-item:not(.well-header):not(.highlighted){
+                        font-size: 0;
+                    }
+                    .well-item:not(.well-header).highlighted{
+                        font-size:calc(var(--well-size) * 0.4);
                     }
                     .well-item > div{
                         left:50%;
@@ -471,19 +495,29 @@
                     .well-item > div.well-item-title-all{
                         transform:translate(-50%,-50%) rotate(-45deg);
                         font-weight: bold;
+
+                        font-size:calc(var(--well-size) * 0.4);
                     }
                     .well-item.selected{
                         --background:var(--select-color);
                     }
-                    .well-item.highlight.selected{
-                        background:linear-gradient(-135deg, var(--default-background) 0%, var(--default-background) var(--transition-border), var(--select-color) var(--transition-border), var(--select-color) 100%);
+                    .well-item.highlight-left{
+                        --border-size-left:var(--border-size);
                     }
-                    .well-item.highlight:not(.selected){
-                        background:linear-gradient(-135deg, var(--select-color) 0%, var(--select-color) var(--transition-border), var(--default-background) var(--transition-border), var(--default-background) 100%);
+                    .well-item.highlight-right{
+                        --border-size-right:var(--border-size);
+                    }
+                    .well-item.highlight-top{
+                        --border-size-top:var(--border-size);
+                    }
+                    .well-item.highlight-bottom{
+                        --border-size-bottom:var(--border-size);
                     }
                 </style>
                 <script>
                     p.init_well_selection=function(element){
+                        this.well_drag={}
+
                         let well_count_x=this.config.plate_type.well_count_x+1
                         let well_count_y=this.config.plate_type.well_count_y+1
 
@@ -503,13 +537,20 @@
                                     well.setAttribute("plate-col",x)
                                     well.setAttribute("plate-row",y)
 
+                                    let row_name=x
+                                    let col_name=String.fromCharCode("A".charCodeAt(0) +y-1)
                                     if(x==0 && y!=0){
-                                        well.children[0].innerText=String.fromCharCode("A".charCodeAt(0) +y-1)
+                                        well.children[0].innerText=col_name
+                                        well.classList.add("well-header")
                                     }else if(y==0 && x!=0){
-                                        well.children[0].innerText=x
+                                        well.children[0].innerText=row_name
+                                        well.classList.add("well-header")
                                     }else if(x==0 && y==0){
                                         well.children[0].innerText="ALL"
+                                        well.classList.add("well-header")
                                         well.children[0].classList.add("well-item-title-all")
+                                    }else{
+                                        well.children[0].innerText=col_name+row_name
                                     }
 
                                     element.appendChild(well)
@@ -565,6 +606,7 @@
                         element.classList.toggle('selected')
                         this.config.well_selection[well_row-1][well_col-1]=!this.config.well_selection[well_row-1][well_col-1]
                     }
+
                     p.get_wells_from_current=function(element){
                         /// get all wells that are affected by the current interaction
                         /// if the interaction is on a well, return only that well
@@ -583,39 +625,34 @@
                         }
                         return well_elements
                     }
-                    p.well_hover_begin=function(event){
-                        for(let element of this.get_wells_from_current(event.currentTarget)){
-                            element.classList.add("highlight")
+
+                    p.area_leave=function(event){
+                        /// cancel drag selection (do not select anything, remove all highlights)
+
+                        this.well_drag.origin=null
+
+                        if(this.well_drag.selected_wells){
+                            for(let well of this.well_drag.selected_wells){
+                                well.classList.remove("highlight-left")
+                                well.classList.remove("highlight-right")
+                                well.classList.remove("highlight-top")
+                                well.classList.remove("highlight-bottom")
+                                well.classList.remove("highlighted")
+                            }
+                            this.well_drag.selected_wells=[]
                         }
                     }
-                    p.well_hover_end=function(event){
-                        for(let element of this.get_wells_from_current(event.currentTarget)){
-                            element.classList.remove("highlight")
-                        }
-                    }
-                    p.well_select_drag_begin=function(event){
+                    p.well_mousedown=function(event){
                         // init 'well drag' (i.e. click and drag to select multiple wells)
                         this.well_drag={origin:event.currentTarget,selected_wells:[]}
 
                         // register drag on initial element
-                        this.well_select_drag_register(event)
+                        this.well_mouseenter(event)
                     }
-                    p.well_select_drag_cancel=function(event){
-                        /// cancel drag selection (do not select anything, remove all highlights)
-
-                        if(!this.well_drag){
-                            return
-                        }
-
-                        for(let well of this.well_drag.selected_wells){
-                            well.classList.remove("highlight")
-                        }
-                        this.well_drag=null
-                    }
-                    p.well_select_drag_end=function(event){
+                    p.well_mouseup=function(event){
                         /// end drag selection (select all wells that are in the drag area)
 
-                        if(!this.well_drag){
+                        if(!this.well_drag.origin){
                             return
                         }
 
@@ -630,7 +667,11 @@
                         for(let well of this.well_drag.selected_wells){
                             // remove highlight on all wells (except the one where the pointer is currently above)
                             if(well!==event.currentTarget){
-                                well.classList.remove("highlight")
+                                well.classList.remove("highlight-left")
+                                well.classList.remove("highlight-right")
+                                well.classList.remove("highlight-top")
+                                well.classList.remove("highlight-bottom")
+                                well.classList.remove("highlighted")
                             }
                             
                             // actually (de-)select the wells in the highlighted area
@@ -642,28 +683,43 @@
                         }
                         
                         // indicate stop of drag
-                        this.well_drag=null
-                    }
-                    p.well_select_drag_register=function(event){
-                        if(!this.well_drag){
-                            return
-                        }
+                        this.well_drag.origin=null
 
+                        // register mouseenter event on current element to be consistent with expected behaviour
+                        this.well_mouseenter(event)
+                    }
+                    p.well_mouseenter=function(event){
                         // remove highlight on wells in previous drag area
                         let well_container=event.currentTarget.parentElement
 
-                        for(let well of this.well_drag.selected_wells){
-                            well.classList.remove("highlight")
+                        if(this.well_drag.selected_wells){
+                            for(let well of this.well_drag.selected_wells){
+                                well.classList.remove("highlight-left")
+                                well.classList.remove("highlight-right")
+                                well.classList.remove("highlight-top")
+                                well.classList.remove("highlight-bottom")
+                                well.classList.remove("highlighted")
+                            }
                         }
                         this.well_drag.selected_wells=[]
 
-                        // calculate bounding box of new drag area
-                        let event_start_row=this.well_drag.origin.getAttribute("plate-row")
-                        let event_start_col=this.well_drag.origin.getAttribute("plate-col")
+                        // assume only self is currently highlighted
+                        let this_row=event.currentTarget.getAttribute("plate-row")
+                        let this_col=event.currentTarget.getAttribute("plate-col")
 
-                        let event_end_row=event.currentTarget.getAttribute("plate-row")
-                        let event_end_col=event.currentTarget.getAttribute("plate-col")
+                        let event_start_row=this_row
+                        let event_start_col=this_col
 
+                        let event_end_row=this_row
+                        let event_end_col=this_col
+
+                        // if there is a drag origin, the highlight area starts at the origin, not here
+                        if(this.well_drag.origin){
+                            event_start_row=this.well_drag.origin.getAttribute("plate-row")
+                            event_start_col=this.well_drag.origin.getAttribute("plate-col")
+                        }
+
+                        // if the origin is not the current element, make sure that the start/end of row/col are in the correct order (i.e. start < end)
                         let row_start=Math.min(event_start_row,event_end_row)
                         let row_end=Math.max(event_start_row,event_end_row)
                         let col_start=Math.min(event_start_col,event_end_col)
@@ -675,36 +731,56 @@
                             let child_col=child.getAttribute("plate-col")
 
                             if(child_row>=row_start && child_row<=row_end && child_col>=col_start && child_col<=col_end){
-                                if(child_row==0 && child_col==0){
-                                    for(let well_in_col of well_container.querySelectorAll(`[plate-col]:not([plate-col="0"])[plate-row]:not([plate-row="0"])`)){
-                                        this.well_drag.selected_wells.push(well_in_col)
-                                    }
-                                }else if(child_row==0 && child_col!=0){
-                                    for(let well_in_col of well_container.querySelectorAll(`[plate-col="${child_col}"][plate-row]:not([plate-row="0"])`)){
-                                        this.well_drag.selected_wells.push(well_in_col)
-                                    }
-                                }else if(child_row!=0 && child_col==0){
-                                    for(let well_in_row of well_container.querySelectorAll(`[plate-row="${child_row}"][plate-col]:not([plate-col="0"])`)){
-                                        this.well_drag.selected_wells.push(well_in_row)
-                                    }
-                                }else{
-                                    this.well_drag.selected_wells.push(child)
+                                for(let el of this.get_wells_from_current(child)){
+                                    this.well_drag.selected_wells.push(el)
                                 }
                             }
                         }
 
                         // highlight wells in new drag area
-                        for(let well of this.well_drag.selected_wells){
-                            well.classList.add("highlight")
+
+                        // due to special handling of row/column headers above, we need to find the min/max row/column of the selected wells again
+                        let min_row=Infinity
+                        let max_row=-Infinity
+                        let min_col=Infinity
+                        let max_col=-Infinity
+                        for(let element of this.well_drag.selected_wells){
+                            let row=element.getAttribute("plate-row")
+                            let col=element.getAttribute("plate-col")
+
+                            min_row=Math.min(min_row,row)
+                            max_row=Math.max(max_row,row)
+                            min_col=Math.min(min_col,col)
+                            max_col=Math.max(max_col,col)
+                        }
+                        for(let element of this.well_drag.selected_wells){
+                            let row=element.getAttribute("plate-row")
+                            let col=element.getAttribute("plate-col")
+
+                            element.classList.add("highlighted")
+                            if(col==min_col){
+                                element.classList.add("highlight-left")
+                            }
+                            if(col==max_col){
+                                element.classList.add("highlight-right")
+                            }
+                            if(row==min_row){
+                                element.classList.add("highlight-top")
+                            }
+                            if(row==max_row){
+                                element.classList.add("highlight-bottom")
+                            }
                         }
                     }
                 </script>
-                <div id="well-selection-container" class="data" p:init-vis="init_well_selection" p:on-resize="init_well_selection" p:on-mouseleave="well_select_drag_cancel">
-                    <template name="well_item">
-                        <div class="well-item" p:on-mouseenter="well_hover_begin,well_select_drag_register" p:on-mouseleave="well_hover_end" p:on-mousedown="well_select_drag_begin" p:on-mouseup="well_select_drag_end,well_hover_begin">
-                            <div><!-- row/column label goes here --></div>
-                        </div>
-                    </template>
+                <div id="well-selection-container">
+                    <div id="well-selection-area" class="data" p:init-vis="init_well_selection" p:on-resize="init_well_selection" p:on-mouseleave="area_leave">
+                        <template name="well_item">
+                            <div class="well-item" p:on-mouseenter="well_mouseenter" p:on-mousedown="well_mousedown" p:on-mouseup="well_mouseup">
+                                <div><!-- row/column label goes here --></div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
 
                 <script>
@@ -722,7 +798,7 @@
                         return num_selected_wells
                     }
                     p.select_every_second_well=function(event){
-                        let well_container=event.currentTarget.parentElement.parentElement.querySelector("#well-selection-container")
+                        let well_container=event.currentTarget.parentElement.parentElement.querySelector("#well-selection-area")
                         let well_elements=well_container.querySelectorAll(`[plate-col]:not([plate-col="0"])[plate-row]:not([plate-row="0"])`)
 
                         let begin_index=event.currentTarget.getAttribute("selection_offset")
