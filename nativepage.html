@@ -40,6 +40,9 @@
             code{
                 font-family: monospace;
             }
+            .has-tooltip:not(button){
+                cursor:help;
+            }
         </style>
         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
         <script src="components/p/init.js"></script>
@@ -1731,7 +1734,6 @@
                         if(tooltip_rect.bottom<0){
                             element.style.bottom="0px"
                         }
-
                     }.bind(p)
                 </script>
                 <template name="tooltip">

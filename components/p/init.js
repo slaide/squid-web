@@ -217,8 +217,8 @@ let p={
         return imageData
     },
 
-    tooltip_time_to_display_ms:500,
-    tooltip_time_to_hide_ms:500,
+    tooltip_time_to_display_ms:500.0,
+    tooltip_time_to_hide_ms:500.0,
     tooltip_begin(event,skip_timeout=false){
         let event_target=event.currentTarget
         let tooltip_el=event_target.tooltip_element
@@ -295,6 +295,11 @@ let p={
     },
     tooltip_end(event){
         /// this is called when the mouse leaves the element where the tooltip was triggered
+
+        if(this.active_tooltip!==event.currentTarget.tooltip_element){
+            return
+        }
+
         let tooltip_el=event.currentTarget.tooltip_element
         tooltip_el.visibility_timer=setTimeout((() => {
             this.tooltip_cancel(tooltip_el)
@@ -340,6 +345,7 @@ let p={
 
                 let tooltip_text=element.getAttribute("p:tooltip")
                 if(tooltip_text){
+                    element.classList.add("has-tooltip")
                     element.addEventListener("mouseenter",this.tooltip_begin)
                     element.addEventListener("mouseleave",this.tooltip_end)
                 }
