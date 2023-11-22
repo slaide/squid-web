@@ -34,14 +34,15 @@ function isObject(obj) {
 
 function make_observable(obj, parent=null) {
     if(obj.__isObservable){
-        return obj;
+        return obj._proxy;
     }
 
     obj._parent=parent
     obj.__isObservable = true;
     obj._callbacks=[]
+    obj._running=false
 
-    obj.onChange = (cb) => {
+    obj.onChange = function(cb){
         obj._callbacks.push(cb);
     }
     obj.copyRaw=function(){
@@ -82,6 +83,10 @@ function make_observable(obj, parent=null) {
 
     let handler = {
         get: (target, property) => {
+            if(property.startsWith && property.startsWith("_")){
+                return target[property]
+            }
+            
             if (isObject(target[property])) {
                 target[property]=make_observable(target[property], obj._proxy)
             }
@@ -89,6 +94,11 @@ function make_observable(obj, parent=null) {
             return target[property]
         },
         set: (target, property, value) => {
+            // dont overwrite setter of private properties
+            if(property.startsWith && property.startsWith("_")){
+                return Reflect.set(target, property, value);
+            }
+
             let current_target=obj
 
             if (isObject(value)) {
@@ -106,10 +116,27 @@ function make_observable(obj, parent=null) {
             }
             const result = Reflect.set(target, property, value);
 
+            // if the value was changed, call all callbacks, then call all callbacks of the parent object, etc.
+            // only propagate the change to parents until an object is hit that has already been changed (rather, that has started propagating changes itself)
+            //
+            // this is still not perfect because it doesn't handle the case where an object is changed twice in the same frame, but it's good enough for now
+            // (the problem is that the value can be changed multiple times, but the callback is only run after the first change)
+            let current_context_callbacks_registered=[]
             while(current_target){
+                if(current_target._proxy._callbacks_ongoing){
+                    break
+                }
+                current_context_callbacks_registered.push(current_target)
+                current_target._proxy._callbacks_ongoing=true
                 current_target._callbacks.forEach(cb=>cb(property, value, target))
                 current_target=current_target._parent
             }
+
+            for(let unroll_target of current_context_callbacks_registered){
+                unroll_target._proxy._callbacks_ongoing=false
+                unroll_target=unroll_target._parent
+            }
+
             return result;
         }
     };
@@ -145,6 +172,7 @@ let p={
     config:{
         _observable:true,
         well_selection:[],
+        grid:{},
     },
 
     templates:{},
@@ -315,9 +343,11 @@ let p={
                                     })
                                     attribute_change_observer.observe(element,{attributes:true})
                                 }else if(event_name.startsWith("objchange")){
-                                    let obj_list=event_name.replace("objchange(","").replace(")","").split(",")
+                                    let obj_list_string=event_name.replace("objchange(","").replace(")","")
+                                    // separator must not be comma! (the property names is cut off at the first comma by the browser)
+                                    let obj_list=obj_list_string.split("&")
                                     for(let obj_name of obj_list){
-                                        // obj_name can be any identifier, e.g. p or p.mynewdate or p.mynewdate.value, so the following code is a bit complicated:
+                                        // obj_name can be any identifier, e.g. p or p.mynewdate or p.mynewdate.value
 
                                         // split obj_name at dots, e.g. p.mynewdate.value -> ["p","mynewdate","value"]
                                         let obj_name_split=obj_name.split(".")
@@ -366,12 +396,6 @@ let p={
                                                             element:element
                                                         })
                                                     }
-                                                    p[event_func_name]({
-                                                        property:property,
-                                                        value:value,
-                                                        target:target,
-                                                        element:element
-                                                    })
                                                 });
                                             // if there is no parent, error
                                             }else{
