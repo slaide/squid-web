@@ -445,10 +445,6 @@
                         overflow: hidden;
                     }
                     .well-item{
-                        --border-size: 0.2em;
-                        background-repeat: no-repeat;
-                        padding: var(--border-size); /* this will be your border width */
-
                         background-color:white;
                         cursor:pointer;
                         text-align:center;
@@ -466,22 +462,39 @@
 
                         --background:var(--default-background);
 
+                        --border-size: 0.2em;
+                        --border-color: var(--highlight-color);
+                        padding: var(--border-size); /* fake border width hack */
+
                         --border-size-left:0;
                         --border-size-right:0;
                         --border-size-top:0;
                         --border-size-bottom:0;
 
                         background: 
-                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat left / var(--border-size-left) 100%,
-                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat right / var(--border-size-right) 100%,
-                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat top / 100% var(--border-size-top),
-                            linear-gradient(var(--highlight-color), var(--highlight-color)) no-repeat bottom / 100% var(--border-size-bottom),
+                            linear-gradient(var(--border-color), var(--border-color)) no-repeat left / var(--border-size-left) 100%,
+                            linear-gradient(var(--border-color), var(--border-color)) no-repeat right / var(--border-size-right) 100%,
+                            linear-gradient(var(--border-color), var(--border-color)) no-repeat top / 100% var(--border-size-top),
+                            linear-gradient(var(--border-color), var(--border-color)) no-repeat bottom / 100% var(--border-size-bottom),
                             var(--background);
                     }
                     .well-item[plate-col="0"],.well-item[plate-row="0"]{
                         --default-background:white;
 
                         font-size:calc(var(--well-size) * 0.6);
+
+                        --border-size:1px;
+                        --border-color: black;
+                    }
+                    .well-item[plate-col="0"]{
+                        --border-size-left:var(--border-size);
+                        --border-size-right:var(--border-size);
+                        --border-size-bottom:var(--border-size);
+                    }
+                    .well-item[plate-row="0"]{
+                        --border-size-right:var(--border-size);
+                        --border-size-top:var(--border-size);
+                        --border-size-bottom:var(--border-size);
                     }
                     .well-item:not(.well-header):not(.highlighted){
                         font-size: 0;
@@ -659,11 +672,21 @@
                             return
                         }
 
-                        let all_selected=true
-                        for(let well of this.well_drag.selected_wells){
-                            if(!well.classList.contains("selected")){
-                                all_selected=false
-                                break
+                        let origin_is_header=this.well_drag.origin.classList.contains("well-header")
+
+                        let new_selection_status=!this.well_drag.origin.classList.contains("selected")
+
+                        // if the origin is a well header, then select all in area if at least one is not selected, otherwise (if all are selected) deselect all
+                        if(origin_is_header){
+                            let all_selected=true
+                            for(let well of this.well_drag.selected_wells){
+                                if(!well.classList.contains("selected")){
+                                    all_selected=false
+                                    break
+                                }
+                            }
+                            if(all_selected){
+                                new_selection_status=false
                             }
                         }
 
@@ -678,10 +701,10 @@
                             }
                             
                             // actually (de-)select the wells in the highlighted area
-                            if(all_selected){
-                                this.well_set_unselected(well)
-                            }else{
+                            if(new_selection_status===true){
                                 this.well_set_selected(well)
+                            }else{
+                                this.well_set_unselected(well)
                             }
                         }
                         
@@ -777,6 +800,8 @@
                     }
                 </script>
                 <div id="well-selection-container">
+                    <h2>Select wells for imaging:</h2>
+                    <br/>
                     <div id="well-selection-area" class="data" p:init-vis="init_well_selection" p:on-resize="init_well_selection" p:on-mouseleave="area_leave">
                         <template name="well_item">
                             <div class="well-item" p:on-mouseenter="well_mouseenter" p:on-mousedown="well_mousedown" p:on-mouseup="well_mouseup">
@@ -1308,7 +1333,7 @@
 
                             <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
 
-                            <label>Lightsource:</label>
+                            <label>Light source:</label>
                             <select class="col-3 data" p:init="init_lightsource_dropdown"></select>
 
                             <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
@@ -1317,7 +1342,7 @@
                                 <p>ms</p>
                             </div>
 
-                            <label class="data" p:tooltip="Fraction of the maximum power of the lightsource with which it illuminates the sample. Must be in range [0;100%]">Lightsource Power:</label>
+                            <label class="data" p:tooltip="Fraction of the maximum power of the light source with which it illuminates the sample. Must be in range [0;100%]">Light Power:</label>
                             <div class="input-unit-container">
                                 <input type="number" min="0" max="100" step="0.1" value="100" wheel-adjust="false"/>
                                 <p>%</p>
