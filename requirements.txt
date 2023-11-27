@@ -2,3 +2,7 @@ flask==3.0.0
 Pillow==10.1.0
 numpy==1.26.1
 scipy==1.11.3
+tifffile
+imageio
+imagecodecs
+opencv-python

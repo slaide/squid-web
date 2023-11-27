@@ -6,6 +6,10 @@ import os
 import io
 import numpy as np
 import traceback
+import cv2
+import time
+from dataclasses import dataclass
+import typing as tp
 
 from pathlib import Path
 
@@ -73,6 +77,13 @@ def grequiredStorageetit():
         "max_required_storage": max_required_storage
     }    
 
+@dataclass
+class CachedImage:
+    image: np.ndarray
+    last_access_time: float
+
+image_scale_cache:tp.Dict[str,CachedImage]={}
+
 @app.route('/<path:filename>')
 def get_file(filename):
     # Define the directory where your files are stored
@@ -81,50 +92,90 @@ def get_file(filename):
     # Construct the full file path
     file_path = os.path.join(file_directory, filename)
 
-    # If the file is a PNG, apply the conversion
-    if filename.endswith('.png.saturated'):
-        real_file_path = filename.strip('.saturated')
+    # If the file is a tiff, convert to png
+    if filename.endswith('.tiff') or filename.endswith('.tif'):
+        raw_filename=filename
+
+        file_is_in_cache=raw_filename in image_scale_cache
+
+        highlight_saturated_pixels='.saturated' in filename
+        filename = filename.replace('.saturated','')
+
+        downsample_factor=5
+
+        image_as_highres='.highres' in filename
+        filename = filename.replace('.highres','')
+        image_as_halfres='.halfres' in filename
+        filename = filename.replace('.halfres','')
+        image_as_midres='.midres' in filename
+        filename = filename.replace('.midres','')
+        image_as_lowres='.lowres' in filename
+        filename = filename.replace('.lowres','')
+
+        if image_as_highres:
+            downsample_factor=1
+        if image_as_halfres:
+            downsample_factor=2
+        if image_as_midres:
+            downsample_factor=5
+        if image_as_lowres:
+            downsample_factor=10
 
         # Check if the file exists
-        if not os.path.isfile(real_file_path):
+        if not os.path.isfile(filename):
             abort(404)
 
-        try:
+        if file_is_in_cache:
+            cached_image = image_scale_cache[raw_filename]
+            img_data = cached_image.image
+
+        else:
             # Load the 16-bit monochrome image
-            image = Image.open(real_file_path)
+            image=cv2.imread(filename,cv2.IMREAD_UNCHANGED)
 
             # convert to 8-bit
-            image = np.array(image) >> 8
+            image = np.array(image)
+            image >>= 8
             image = image.astype(np.uint8)
 
-            image=image[::10,::10]
+            # downsample
+            image=image[::downsample_factor,::downsample_factor]
+            
+            if highlight_saturated_pixels:
 
-            # find saturated pixels
-            image_saturation_mask=image>100
+                # find saturated pixels
+                image_saturation_mask=image>250
 
-            # convert from monochrome to rgba by just repeating the same value 4 times
-            image = np.expand_dims(image, axis=-1)
-            image = np.repeat(image, 4, axis=-1)
-            image[...,-1] = 255
+                # convert from monochrome to rgba by just repeating the same value 4 times
+                image = np.expand_dims(image, axis=-1)
+                image = np.repeat(image, 4, axis=-1)
+                image[...,-1] = 255
 
-            # turn saturated pixels red
-            image[image_saturation_mask]=[255,0,0,255]
+                # turn saturated pixels red
+                image[image_saturation_mask]=[255,0,0,255]
 
             # Convert the image to PIL format
             image = Image.fromarray(image)
 
             # Prepare the image for sending
             img_io = io.BytesIO()
-            image.save(img_io, 'PNG')
+            # send image as png (tiff is not supported in the browser)
+            # note on compression level: very quickly diminishing returns beyond 1 (where 0 is actually no compression, and 1 is just the fastest compression)
+            image.save(img_io, 'PNG', compress_level=1)
+            # reset the buffer
             img_io.seek(0)
 
-            # Send the converted image
-            return send_file(img_io, mimetype='image/png')
-        
-        except Exception as e:
-            print_exception(e)
-            
-            abort(500)
+            # read file into buffer
+            img_data = img_io.read()
+
+            # store in cache
+            image_scale_cache[raw_filename]=CachedImage(img_data,time.time())
+
+        # Create a new BytesIO object from the cached data
+        new_img_io = io.BytesIO(img_data)
+
+        # Send the converted image
+        return send_file(new_img_io, mimetype='image/png')
 
 
     # Check if the file exists
@@ -135,4 +186,4 @@ def get_file(filename):
     return send_file(file_path)
 
 if __name__ == '__main__':
-    app.run(debug=True,port=8000)
+    app.run(debug=True,port=8000,use_reloader=False)
