@@ -6,22 +6,15 @@ function center_image(element){
     let img_height=element.children[0].clientHeight
     let img_width=element.children[0].clientWidth
 
-    let half_img_height=img_height/2
-    let half_img_width=img_width/2
+    let container_height=element.clientHeight
+    let container_width=element.clientWidth
 
     // calculate scale so that image fits into container
-    let img_scale_to_fit=Math.min(element.clientHeight/img_height,element.clientWidth/img_width)*0.95
+    let img_scale_to_fit=Math.min(container_height/img_height,container_width/img_width)*0.95
     element.image_scale=img_scale_to_fit
 
-    let scaled_img_height=img_scale_to_fit*img_height
-    let scaled_img_width=img_scale_to_fit*img_width
-
-    // then calculate offset to center image within container
-    let base_offset_x=(element.clientWidth-scaled_img_width)/2
-    let base_offset_y=(element.clientHeight-scaled_img_height)/2
-
-    element.image_offset_left=base_offset_x-half_img_width+scaled_img_width/2
-    element.image_offset_top=base_offset_y-half_img_height+scaled_img_height/2
+    element.image_offset_left=container_width/2 - img_width/2
+    element.image_offset_top=container_height/2 - img_height/2
 
     element.children[0].style.setProperty("--left",element.image_offset_left+"px")
     element.children[0].style.setProperty("--top",element.image_offset_top+"px")
@@ -52,19 +45,16 @@ document.addEventListener("DOMContentLoaded",function(){
         image_container_element.classList.add("dynamic-image-container")
         element.appendChild(image_container_element)
 
-        // initialize these values to _something_
+        // initialize these values
         image_container_element.image_offset_top=0;
         image_container_element.image_offset_left=0;
         image_container_element.image_scale=1;
 
-        image_container_element.addEventListener("dblclick",(event)=>center_image(event.currentTarget))
+        image_container_element.addEventListener("dblclick",(event)=>{center_image(event.currentTarget);center_image(event.currentTarget)})
         image_container_element.addEventListener("mousedown",function(event){
             event.preventDefault()
 
-            let event_target=event.target
-            if(event_target.classList.contains("dynamic-image")){
-                event_target=event_target.parentNode;
-            }
+            let event_target=event.currentTarget
 
             event_target.start_x=event.clientX
             event_target.start_y=event.clientY
@@ -72,13 +62,10 @@ document.addEventListener("DOMContentLoaded",function(){
             function drag_mouse(event){
                 event.preventDefault()
 
-                let event_target=event.target
-                if(event_target.classList.contains("dynamic-image")){
-                    event_target=event_target.parentNode;
-                }
+                let event_target=event.currentTarget
                 
-                let current_offset_x = event.clientX - event_target.start_x
-                let current_offset_y = event.clientY - event_target.start_y
+                let current_offset_x = (event.clientX - event_target.start_x)
+                let current_offset_y = (event.clientY - event_target.start_y)
 
                 event_target.children[0].style.setProperty("--left",event_target.image_offset_left+current_offset_x+"px")
                 event_target.children[0].style.setProperty("--top",event_target.image_offset_top+current_offset_y+"px")
@@ -87,12 +74,10 @@ document.addEventListener("DOMContentLoaded",function(){
             function end_mouse_move(event){
                 event.preventDefault()
 
-                let event_target=event.target
-                if(event_target.classList.contains("dynamic-image")){
-                    event_target=event_target.parentNode;
-                }
-                let current_offset_x = event.clientX - event_target.start_x
-                let current_offset_y = event.clientY - event_target.start_y
+                let event_target=event.currentTarget
+
+                let current_offset_x = (event.clientX - event_target.start_x)
+                let current_offset_y = (event.clientY - event_target.start_y)
                 
                 event_target.image_offset_left+=current_offset_x
                 event_target.image_offset_top+=current_offset_y
@@ -111,10 +96,34 @@ document.addEventListener("DOMContentLoaded",function(){
         image_container_element.addEventListener("wheel",function(event){
             event.preventDefault()
 
-            let event_target=event.target
-            if(event_target.classList.contains("dynamic-image")){
-                event_target=event_target.parentNode;
-            }
+            let event_target=event.currentTarget
+
+            let img_height=event_target.children[0].clientHeight
+            let img_width=event_target.children[0].clientWidth
+
+            // calculate event position relative to top left of viewport
+            let event_x = (event.clientX - event_target.getBoundingClientRect().left)
+            let event_y = (event.clientY - event_target.getBoundingClientRect().top)
+
+            // calculate event position relative to top left of (unscaled!) image
+            event_x -= event_target.image_offset_left
+            event_y -= event_target.image_offset_top
+
+            // correct for scaled image
+            event_x += -img_width/2*(1-event_target.image_scale)
+            event_y += -img_height/2*(1-event_target.image_scale)
+
+            // correct for scaling to get position relative to top left of (unscaled!) image
+            event_x /= event_target.image_scale
+            event_y /= event_target.image_scale
+
+            // get artificial origin (pointer position within image)
+            let offset_x=img_width/2-event_x
+            let offset_y=img_height/2-event_y
+
+            // correct offset for image scaling, before applying new scale
+            let event_before_x = -offset_x*(1-event_target.image_scale)
+            let event_before_y = -offset_y*(1-event_target.image_scale)
 
             if(event.deltaY<0){
                 event_target.image_scale*=1.05;
@@ -122,6 +131,20 @@ document.addEventListener("DOMContentLoaded",function(){
                 event_target.image_scale/=1.05;
             }
 
+            // correct offset for image scaling, after applying new scale
+            let event_after_x = -offset_x*(1-event_target.image_scale)
+            let event_after_y = -offset_y*(1-event_target.image_scale)
+
+            // calculate difference between event position before and after scaling
+            let event_offset_x = event_after_x - event_before_x
+            let event_offset_y = event_after_y - event_before_y
+
+            // calculate new offset for image, so that event position remains the same
+            event_target.image_offset_left += event_offset_x
+            event_target.image_offset_top += event_offset_y
+
+            event_target.children[0].style.setProperty("--left",event_target.image_offset_left+"px")
+            event_target.children[0].style.setProperty("--top",event_target.image_offset_top+"px")
             event_target.children[0].style.setProperty("--scale",event_target.image_scale)
         },{passive:false})
 

@@ -14,14 +14,11 @@
 .dynamic-image{
     position:absolute;
 
-    transform-origin:center;
+    transform-origin: center center;
 
     --left:0px;
     --top:0px;
     --scale:1;
 
-    left:var(--left);
-    top:var(--top);
-
-    transform: scale( var(--scale) ) ;
+    transform: translateX( calc( var(--left) ) ) translateY( calc( var(--top) ) ) scale( var(--scale) );
 }
