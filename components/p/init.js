@@ -200,8 +200,8 @@ let p={
     }),
     get_img_data(img_element,also_return_canvas=false){
         const canvas = document.createElement('canvas');
-        canvas.width = img_element.width;
-        canvas.height = img_element.height;
+        canvas.width=img_element.width
+        canvas.height=img_element.height
     
         // Draw the image on canvas
         const ctx = canvas.getContext('2d');
@@ -215,6 +215,33 @@ let p={
         }
 
         return imageData
+    },
+
+    save_config_on_ctrlcmd_s(event){
+        /// event triggered by pressing ctrl/cmd+s (save current config as file)
+
+        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            event.preventDefault()
+            
+            let config_data_to_download=p.config.copyRaw()
+
+            let config_data_blob=new Blob([JSON.stringify(config_data_to_download)],{type:"application/json"})
+
+            let config_data_url=URL.createObjectURL(config_data_blob)
+
+            // Create an anchor element and set the URL as the Blob URL
+            var a = document.createElement('a')
+            a.href = config_data_url
+            a.download = "config.json"
+
+            // Append the anchor to the document and trigger the download
+            document.body.appendChild(a)
+            a.click()
+
+            // Clean up by removing the element and revoking the Blob URL
+            document.body.removeChild(a)
+            URL.revokeObjectURL(a.href)
+        }
     },
 
     tooltip_time_to_display_ms:500.0,
