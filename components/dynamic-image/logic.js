@@ -1,3 +1,8 @@
+let zoom_speed=0.09
+let max_speed=10
+let default_min_scale=0.05
+let default_max_scale=100
+
 function center_image(element){
     if(element.classList.contains("dynamic-image")){
         element=element.parentNode;
@@ -125,11 +130,29 @@ document.addEventListener("DOMContentLoaded",function(){
             let event_before_x = -offset_x*(1-event_target.image_scale)
             let event_before_y = -offset_y*(1-event_target.image_scale)
 
-            if(event.deltaY<0){
-                event_target.image_scale*=1.05;
-            }else{
-                event_target.image_scale/=1.05;
+            let relative_speed=Math.abs(event.deltaY)
+            if(relative_speed>max_speed){
+                relative_speed=max_speed
             }
+
+            if(event.deltaY<0){
+                event_target.image_scale*=1+(zoom_speed*relative_speed);
+            }else{
+                event_target.image_scale/=1+(zoom_speed*relative_speed);
+            }
+
+            // clamp scale
+            let min_scale=event_target.getAttribute("min-scale")
+            if(min_scale===null){
+                min_scale=default_min_scale
+            }
+
+            let max_scale=event_target.getAttribute("max-scale")
+            if(max_scale===null){
+                max_scale=default_max_scale
+            }
+
+            event_target.image_scale=Math.min(Math.max(event_target.image_scale,min_scale),max_scale)
 
             // correct offset for image scaling, after applying new scale
             let event_after_x = -offset_x*(1-event_target.image_scale)
