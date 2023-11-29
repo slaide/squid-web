@@ -38,7 +38,7 @@ function make_observable(obj, parent=null) {
     }
 
     obj._parent=parent
-    obj.__isObservable = true;
+    obj.__isObservable = true
     obj._callbacks=[]
     obj._running=false
 
@@ -52,7 +52,12 @@ function make_observable(obj, parent=null) {
             let raw_arr=[]
             for(let element of obj){
                 if(isObject(element)){
-                    raw_arr.push(element.copyRaw())
+                    // if the element is observable, copy it recursively
+                    if(!element.__isObservable){
+                        element=structuredClone(element)
+                    }else{
+                        raw_arr.push(element.copyRaw())
+                    }
                 }else{
                     raw_arr.push(element)
                 }
@@ -409,6 +414,11 @@ let p={
                             continue
                         }
                         
+                        if(p[init_func_name]==null){
+                            console.error("init-vis function not found: "+init_func_name)
+                            continue
+                        }
+
                         p[init_func_name]=p[init_func_name].bind(p)
 
                         element._p.init_vis_funcs.push(p[init_func_name])
