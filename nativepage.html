@@ -651,6 +651,8 @@
                     }
                 </style>
                 <script>
+                    let well_selection_init_done=false
+
                     p.init_well_selection=function(element){
                         this.well_drag={}
 
@@ -694,13 +696,29 @@
                             }
                         }
 
-                        this.config.well_selection=[]
-                        for(let y=0;y<this.config.plate_type.well_count_y;y++){
-                            let row=[]
-                            for(let x=0;x<this.config.plate_type.well_count_x;x++){
-                                row.push(false)
+                        let well_selection_exists=this.config.well_selection!=null
+
+                        if(!well_selection_exists){
+                            this.config.well_selection=[]
+                        }
+
+                        // this will truncate or extend with empty
+                        this.config.well_selection.length=this.config.plate_type.well_count_y
+
+                        for(let row_i=0;row_i<this.config.plate_type.well_count_y;row_i++){
+                            if(!Array.isArray(this.config.well_selection[row_i])){
+                                this.config.well_selection[row_i]=[]
                             }
-                            this.config.well_selection.push(row)
+
+                            const row=this.config.well_selection[row_i]
+                            
+                            row.length=this.config.plate_type.well_count_x
+
+                            for(let col_i=0;col_i<this.config.plate_type.well_count_x;col_i++){
+                                if(row[col_i]==null){
+                                    row[col_i]=false
+                                }
+                            }
                         }
 
                         // make the children invisible to only get the size of the container, without any potential distortion from the children
@@ -720,9 +738,20 @@
 
                         // set size and make children visible again
                         for(var child of element.children){
+                            let child_row=child.getAttribute("plate-row")
+                            let child_col=child.getAttribute("plate-col")
+
+                            if(child_row!=0 && child_col!=0){
+                                if(this.config.well_selection[child_row-1][child_col-1]){
+                                    this.well_set_selected(child)
+                                }
+                            }
+
                             child.style.setProperty("--well-size",well_size+"px")
                             child.style.display=null
                         }
+
+                        well_selection_init_done=true
                     }
                     p.well_set_selected=function(element){
                         let well_row=element.getAttribute("plate-row")
@@ -926,6 +955,10 @@
 
                     <script>
                         p.get_num_selected_wells=function(){
+                            if(!well_selection_init_done){
+                                return 0
+                            }
+
                             let num_selected_wells=0
                             if(this.config.well_selection){
                                 for(let row of this.config.well_selection){

@@ -46,7 +46,7 @@ function make_observable(obj, parent=null) {
         obj._callbacks.push(cb)
     }
     function isPubliclyIterableSymbol(symbolname){
-        if(symbolname.startsWith("_")){
+        if(symbolname.startsWith && symbolname.startsWith("_")){
             return false
         }
 
@@ -97,10 +97,6 @@ function make_observable(obj, parent=null) {
 
     let handler = {
         get: (target, property, receiver) => {
-            if(property === Symbol.iterator){
-                return obj[property]
-            }
-
             if(property.startsWith && property.startsWith("_")){
                 return obj[property]
             }
@@ -117,23 +113,21 @@ function make_observable(obj, parent=null) {
                 return Reflect.set(target, property, value);
             }
 
+            let old_value=obj._proxy[property]
+
+            if(old_value==value){
+                return Reflect.set(obj, property, value)
+            }
+
             let current_target=obj
 
             if (isObject(value)) {
                 value=make_observable(value, obj._proxy)
                 current_target=value
 
-                let old_value=obj._proxy[property]
-
                 // if there was an object before, inherit its callbacks
                 if (isObject(old_value) && old_value._callbacks) {
-                    if(property=='well_selection'){
-                        console.log("hi",old_value._callbacks)
-                    }
                     for(let cb of old_value._callbacks){
-                        if(property=='well_selection'){
-                            console.log("hi")
-                        }
                         value.onChange(cb)
                     }
                 }
