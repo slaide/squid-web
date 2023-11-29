@@ -9,10 +9,15 @@ function initialize_tab_container(container_element){
         }
         element.valid_tab_children.push(tab_body)
 
+        let tab_body_name=tab_body.getAttribute('tab-name')
+
         let tab_header=document.createElement('div')
-        tab_header.innerText=tab_body.getAttribute('tab-name')
+        tab_header.innerText=tab_body_name
+        tab_header.setAttribute('target-tab-name',tab_body_name)
         tab_header.classList.add('tab-header')
         tab_header.target_tab_body=tab_body
+
+
         tab_header.addEventListener("click",function(event){
             let tab_header=event.target
             let tab_container=tab_header.parentNode.parentNode

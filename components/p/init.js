@@ -72,7 +72,7 @@ function make_observable(obj, parent=null) {
             }
 
             if(isObject(obj[key])){
-                raw_obj[key]=obj[key].copyRaw()
+                raw_obj[key]=obj._proxy[key].copyRaw()
             }else{
                 raw_obj[key]=obj[key]
             }
@@ -182,11 +182,39 @@ let p={
             if(entry.isIntersecting) {
                 let element=entry.target
 
-                let init_vis_func_name=element.getAttribute("p:init-vis")
-                let init_vis_func=p[init_vis_func_name]
-                init_vis_func(entry.target)
+                for(let init_vis_func of element._p.init_vis_funcs){
+                    init_vis_func(entry.target)
+                }
 
                 p.observer_first_draw.unobserve(element); // Stop observing this element
+            }
+        });
+    }),
+    observer_delta_vis:new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            let element=entry.target
+
+            // false-y can be null or false
+            let element_is_visible=element.getAttribute('_visible')=='true'
+
+            let visibility_has_changed=false
+
+            if(entry.isIntersecting){
+                if(!element_is_visible){
+                    visibility_has_changed=true
+                    element.setAttribute('_visible',true)
+                }
+            }else{
+                if(element_is_visible){
+                    visibility_has_changed=true
+                    element.setAttribute('_visible',false)
+                }
+            }
+
+            if(visibility_has_changed){
+                for(let vis_change_change of element._p.vis_change_funcs){
+                    vis_change_change(entry)
+                }
             }
         });
     }),
@@ -358,6 +386,8 @@ let p={
 
             // process elements
             for(let element of subtree_with_data_class){
+                element._p={}
+
                 let init_func_name_list=element.getAttribute("p:init")
                 if(init_func_name_list){
                     for(let init_func_name of init_func_name_list.split(",")){
@@ -379,12 +409,15 @@ let p={
 
                 let init_vis_func_name_list=element.getAttribute("p:init-vis")
                 if(init_vis_func_name_list){
+                    element._p.init_vis_funcs=[]
                     for(let init_func_name of init_vis_func_name_list.split(",")){
                         if(init_func_name.length==0){
                             continue
                         }
                         
                         p[init_func_name]=p[init_func_name].bind(p)
+
+                        element._p.init_vis_funcs.push(p[init_func_name])
 
                         p.observer_first_draw.observe(element);
                     }
@@ -417,6 +450,12 @@ let p={
                                         })
                                     }
                                     continue
+                                }else if(event_name.startsWith("vis-change")){
+                                    if(element._p.vis_change_funcs==null){
+                                        element._p.vis_change_funcs=[]
+                                    }
+                                    element._p.vis_change_funcs.push(p[event_func_name])
+                                    p.observer_delta_vis.observe(element)
                                 }else if(event_name.startsWith("attrchange")){
                                     let attribute_list=event_name.replace("attrchange(","").replace(")","").split(",")
                                     let attribute_change_observer=new MutationObserver(function(mutationsList, observer){
