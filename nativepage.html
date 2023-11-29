@@ -93,7 +93,28 @@
                 overflow: hidden;
             }
         </style>
-        <div id="main-content" class="tab-container data" p:init-vis="redirect_tab">
+        <script>
+            p.config=make_observable({
+                well_selection:[],
+                grid:{},
+            })
+
+            p.init_config=function(element){
+                let config_from_storage=localStorage.getItem("config")
+                config_from_storage=JSON.parse(config_from_storage)
+                if(config_from_storage){
+                    for(let key in config_from_storage){
+                        this.config[key]=config_from_storage[key]
+                    }
+                }
+            }
+            p.store_config=function(info){
+                let config=info.currentTarget
+                let config_raw=config.copyRaw()
+                localStorage.setItem("config",JSON.stringify(config_raw))
+            }
+        </script>
+        <div id="main-content" class="tab-container data" p:init-vis="redirect_tab,init_config" p:on-objchange(p.config)="store_config">
             <script>
                 // indicate that the url should not be changed when a tab is clicked
                 let change_location_on_tab_click=false
