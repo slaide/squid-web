@@ -93,7 +93,34 @@
                 overflow: hidden;
             }
         </style>
-        <div id="main-content" class="tab-container" >
+        <div id="main-content" class="tab-container data" p:init-vis="redirect_tab">
+            <script>
+                let change_location_on_tab_click=false
+
+                p.redirect_tab=function(_){
+                    let tab_id=window.location.hash.substring(1)
+
+                    let tab_body_element=document.querySelector(window.location.hash)
+                    let tab_body_name=tab_body_element.getAttribute("tab-name")
+
+                    if(tab_id){
+                        let tab_element=document.querySelector(`[target-tab-name="${tab_body_name}"]`)
+                        tab_element.click()
+                    }
+
+                    change_location_on_tab_click=true
+                }
+
+                p.tab_to_url=function(entry){
+                    if(!change_location_on_tab_click){
+                        return
+                    }
+
+                    if(entry.isIntersecting){
+                        history.pushState(null, null, '#' + entry.target.id)
+                    }
+                }
+            </script>
             <style>
                 #basic-setup-tab{
                     display:grid;
@@ -121,7 +148,7 @@
                     grid-column: span 2;
                 }
             </style>
-            <div class="tab-body" tab-name="basic setup">
+            <div class="tab-body data" tab-name="basic setup" id="basic-setup" p:on-vis-change="tab_to_url">
                 <div id="basic-setup-tab">
                     <!-- input validation function for project/plate name -->
                     <script>
@@ -383,7 +410,7 @@
                     </script>
                     <select class="data" id="basic-config-image-format" p:init="init_image_format_dropdown" p:on-change="set_image_format"></select>
 
-                    <label class="data" p:tooltip="The lens that is currently physically installed on the microscope. (This microscope does not support automatically switching to a different lens, this has to be done manually!)" for="basic-config-objective">Camera Lens</label>
+                    <label class="data" p:tooltip="The objective that is currently physically installed on the microscope. (This microscope does not support automatically switching to a different objective, this has to be done manually!)" for="basic-config-objective">Objective</label>
                     <script>
                         p.objectives=[
                             {
@@ -428,7 +455,7 @@
                     height:100%;
                 }
             </style>
-            <div class="tab-body" tab-name="well selection + grid" id="well-grid-selection">
+            <div class="tab-body data" tab-name="well selection + grid" id="well-grid-selection" p:on-vis-change="tab_to_url">
                 <!-- left side (well selection) -->
                 <style>
                     #well-selection-container{
@@ -1190,7 +1217,7 @@
                     overflow-x: auto;
                 }
             </style>
-            <div class="tab-body" tab-name="channel + focus setup" id="channel-focus-setup">
+            <div class="tab-body data" tab-name="channel + focus setup" id="channel-focus-setup" p:on-vis-change="tab_to_url">
                 <script>
                     p.add_channel_config_item=function(event){
                         let channel_config_item_template=p.templates["channel_config_item"]
@@ -1395,43 +1422,58 @@
                     <style>
                         #objective-position-container{
                             display:grid;
-                            grid-template-columns: repeat(11,auto);
-                            grid-template-rows: repeat(2,min-content);
+                            grid-template-columns: repeat(4,auto);
 
                             column-gap: 1em;
                             row-gap:0.2em;
                         }
+                        .xyz-pos-grid{
+                            display:grid;
+                            grid-template-columns: auto auto auto;
+                        }
+                        .grid-col-3{
+                            display:grid;
+                            grid-template-columns: auto auto auto;
+                        }
                     </style>
-                    <div>
-                        <button>enter loading position</button>
-                        <button>leave loading position</button>
-                    </div>
                     <div id="objective-position-container">
-                        <div style="grid-column: span 11;">Camera Lens Position:</div>
+                        <div style="grid-column: span 4;">Objective/Stage Position:</div>
 
-                        <div>current position:</div>
-                        <label>x</label><input type="number" value="34.91"/><p>mm</p>
-                        <label>y</label><input type="number" value="54.34"/><p>mm</p>
-                        <label>z</label><input type="number" value="2345.67"/><p>um</p>
-                        <div><!-- intentionally empty --></div>
+                        <div>
+                            <div>current position:</div>
+                            <div class="xyz-pos-grid">
+                                <label>x</label><input type="number" value="34.91"/><p>mm</p>
+                                <label>y</label><input type="number" value="54.34"/><p>mm</p>
+                                <label>z</label><input type="number" value="2345.67"/><p>um</p>
+                            </div>
+                        </div>
 
-                        <select>
-                            <option>move to (absolute)</option>
-                            <option>move by (relative)</option>
-                        </select>
-                        <label>x</label><input type="number" value="0"/><p>mm</p>
-                        <label>y</label><input type="number" value="0"/><p>mm</p>
-                        <label>z</label><input type="number" value="0"/><p>um</p>
-                        <button>execute</button>
+                        <div>
+                            <select>
+                                <option>move to (absolute)</option>
+                                <option selected>move by (relative)</option>
+                            </select>
+                            <div class="xyz-pos-grid">
+                                <label>x</label><input type="number" value="0"/><p>mm</p>
+                                <label>y</label><input type="number" value="0"/><p>mm</p>
+                                <label>z</label><input type="number" value="0"/><p>um</p>
+                            </div>
+                            <button>execute</button>
+                        </div>
                         
-                        <div>go to</div>
-                        <div>well</div><input type="text" value="A8"><button>browse</button>
-                        <div>position</div><input type="text" value="r3 x c3 : r2 c2"><button>browse</button>
-                        <button>execute</button>
-                        <div><!-- intentionally empty --></div>
-                        <div><!-- intentionally empty --></div>
-                        <div><!-- intentionally empty --></div>
+                        <div>
+                            <div>go to</div>
+                            <div class="grid-col-3">
+                                <div>well</div><input type="text" value="A8"/><button>browse</button>
+                                <div>position</div><input type="text" value="r3 x c3 : r2 c2"/><button>browse</button>
+                            </div>
+                            <button>execute</button>
+                        </div>
 
+                        <div>
+                            <button>enter loading position</button>
+                            <button>leave loading position</button>
+                        </div>
                     </div>
                     <div>
                         <h2>Live View</h2>
@@ -1601,6 +1643,7 @@
 
                                             if(y_axis_log_scale){
                                                 layout.yaxis.type="log"
+                                                layout.yaxis.title+=" (log scale)"
 
                                                 layout.yaxis.tickvals.push(1)
                                                 layout.yaxis.ticktext.push('1')
@@ -1612,9 +1655,17 @@
                                         }
                                     </script>
                                 </div>
-                                <div>focus measure?</div>
                             </div>
                         </div>
+                    </div>
+                    <div>
+                        <h2>Focus (auto & manual)</h2>
+                        <button>Set Laser Autofocus Reference</button>
+                        <div>
+                            <button>measure offset</button>
+                            <p>offset:</p><p>6.634</p><p>um</p>
+                        </div>
+                        <div class="data" p:tooltip="focus measure could be a real focus measure, or the max intensity (which actually works great in practice)">graph of software focus measure vs z (?)</div>
                     </div>
                 </div>
             </div>
@@ -1636,7 +1687,7 @@
                     padding-right:0.5em;
                 }
             </style>
-            <div class="tab-body data" tab-name="review" id="tab-config-summary">
+            <div class="tab-body data" tab-name="review" id="tab-config-summary" p:on-vis-change="tab_to_url">
                 <h2>Acquisition Summary:</h2>
                 <br/>
 
@@ -1719,7 +1770,7 @@
                     <div class="data" p:init="review_set_image_format" p:on-objchange(p.config.image_format)="review_set_image_format"></div>
 
                     <div class="config-accepted"></div>
-                    <div>Camera Lens:</div>
+                    <div>Objective:</div>
                     <div class="data" p:init="review_set_objective" p:on-objchange(p.config.objective)="review_set_objective"></div>
 
                     <div class="config-accepted"></div>
@@ -1756,12 +1807,89 @@
 
                     <div class="config-accepted"></div>
                     <div>imaging channels:</div>
-                    <div class="">
+                    <div class="" id="channelreviewitem">
+                        <style>
+                            #channelreviewitem{
+                                display:grid;
+                                grid-template-columns: auto 1fr;
+                            }
+                        </style>
+
                         <ol class="">
                             <li class="data" p:tooltip="name: Nucleus ; light source: 405nm Laser ; exposure time: 4.5ms ; [TODO: add remaining information]">Nucleus</li>
                             <li class="data" p:tooltip="name: ER ; light source: 488nm Laser ; exposure time: 13.0ms ; [TODO: add remaining information]">ER</li>
                             <li class="data" p:tooltip="name: Golgi ; light source: 561nm Laser ; exposure time: 54.0ms ; [TODO: add remaining information]">Golgi</li>
                         </ol>
+                        <style>
+                            #allchannelhistogram{
+                                width:400px;
+                                height:250px;
+                            }
+                        </style>
+                        <script>
+                            p.createallchannelhistogram=function(_){
+                                let x_data=[]
+                                let y_data=[]
+
+                                for(let c=0;c<5;c++){
+                                    y_data.push([])
+                                    for(let i=0;i<256;i++){
+                                        y_data[c].push(0)
+
+                                        if(c==0){
+                                            x_data.push(i)
+                                        }
+                                    }
+                                }
+
+                                for(let c=0;c<5;c++){
+                                    for(let j=0;j<256;j++){
+                                        y_data[c][j]=Math.sin(j/300*(c+1)*Math.PI+c)+0.7+(c+1)/5
+                                    }
+                                }
+
+                                var traces = []
+                                for(let c=0;c<5;c++){
+                                    traces.push({
+                                        x: x_data,
+                                        y: y_data[c],
+                                        type: 'scatter',
+                                        mode: 'lines',
+                                        name: 'channel '+(1+c)
+                                    })
+                                }
+                                var layout = {
+                                    title: 'Histogram',
+                                    xaxis: {
+                                        title: 'Signal intensity',
+                                        tickvals: [  0,    64, 128,    192,255],
+                                        ticktext: ['0','0.25','0.5','0.75','1'],
+                                    },
+                                    yaxis: {
+                                        title: 'Relative count',
+                                        // only provide ticks for 0 (numbers on this axis are largely irrelevant)
+                                        tickvals: [0],
+                                        ticktext: ['0']
+                                    },
+                                    autosize: true,
+                                    // reduce margin size to reduce blank space around plot
+                                    margin: {l: 40, r: 40, b: 40, t: 40}
+                                }
+
+                                /*if(y_axis_log_scale){
+                                    layout.yaxis.type="log"
+                                    layout.yaxis.title+=" (log scale)"
+
+                                    layout.yaxis.tickvals.push(1)
+                                    layout.yaxis.ticktext.push('1')
+                                }*/
+
+                                let config={scrollZoom: true}
+
+                                Plotly.newPlot('allchannelhistogram', traces, layout, config)
+                            }
+                        </script>
+                        <div id="allchannelhistogram" class="data" p:init="createallchannelhistogram"></div>
                     </div>
 
                     <div></div>
@@ -1882,7 +2010,7 @@
                 <button id="review-run-button">RUN (the acquisition)</button>
             </div>
 
-            <div class="tab-body" tab-name="Status" id="tab-device-status">
+            <div class="tab-body data" tab-name="Status" id="tab-device-status" p:on-vis-change="tab_to_url">
                 <div>
                     <p>54 / 90 images done (61%)</p>
                     <p>has been running for 34m 54s (since 2023-10-24 13:11:43)</p>
