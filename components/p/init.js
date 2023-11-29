@@ -108,7 +108,7 @@ function make_observable(obj, parent=null) {
                 let old_value=target[property]
 
                 // if there was an object before, inherit its callbacks
-                if (isObject(old_value)) {
+                if (isObject(old_value) && old_value._callbacks) {
                     for(let cb of old_value._callbacks){
                         value.onChange(cb)
                     }
@@ -169,12 +169,6 @@ c.grid['num_z'] = 4; // Triggers the callback
 */
 
 let p={
-    config:{
-        _observable:true,
-        well_selection:[],
-        grid:{},
-    },
-
     templates:{},
     observer_first_draw:new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -519,6 +513,7 @@ let p={
                                                             property:property,
                                                             value:value,
                                                             target:target,
+                                                            currentTarget:obj,
                                                             element:element
                                                         })
                                                     }
@@ -535,6 +530,7 @@ let p={
                                                 property:property,
                                                 value:value,
                                                 target:target,
+                                                currentTarget:obj,
                                                 element:element
                                             })
                                         });
