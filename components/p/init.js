@@ -29,12 +29,12 @@
 /// - the template is then accessible as p.templates.some_template_name as DocumentSnippet (only after the initialization of the subtree is complete, i.e. it is not immediately available in p:init, but e.g. in p:init-vis)
 
 function isObject(obj) {
-    return obj === Object(obj);
+    return obj === Object(obj)
 }
 
 function make_observable(obj, parent=null) {
     if(obj.__isObservable){
-        return obj._proxy;
+        return obj._proxy
     }
 
     obj._parent=parent
@@ -43,8 +43,21 @@ function make_observable(obj, parent=null) {
     obj._running=false
 
     obj.onChange = function(cb){
-        obj._callbacks.push(cb);
+        obj._callbacks.push(cb)
     }
+    function isPubliclyIterableSymbol(symbolname){
+        if(symbolname.startsWith("_")){
+            return false
+        }
+
+        // if the attribute is callable, skip
+        if(typeof obj[symbolname] === 'function'){
+            return false
+        }
+
+        return true
+    }
+
     obj.copyRaw=function(){
         // this function strips the proxy from the object (and all its attributes, recursively) and returns the raw object
 
@@ -53,8 +66,9 @@ function make_observable(obj, parent=null) {
             for(let element of obj){
                 if(isObject(element)){
                     // if the element is observable, copy it recursively
-                    if(!element.__isObservable){
-                        element=structuredClone(element)
+                    if(!element.copyRaw){
+                        // this creates element._proxy, if it does not exist yet!
+                        element=make_observable(element,obj._proxy).copyRaw()
                     }else{
                         raw_arr.push(element.copyRaw())
                     }
@@ -67,12 +81,7 @@ function make_observable(obj, parent=null) {
 
         let raw_obj={}
         for(let key in obj){
-            if(key.startsWith("_")){
-                continue
-            }
-
-            // if the attribute is callable, skip
-            if(typeof obj[key] === 'function'){
+            if(!isPubliclyIterableSymbol(key)){
                 continue
             }
 
@@ -87,16 +96,20 @@ function make_observable(obj, parent=null) {
     }
 
     let handler = {
-        get: (target, property) => {
-            if(property.startsWith && property.startsWith("_")){
-                return target[property]
-            }
-            
-            if (isObject(target[property])) {
-                target[property]=make_observable(target[property], obj._proxy)
+        get: (target, property, receiver) => {
+            if(property === Symbol.iterator){
+                return obj[property]
             }
 
-            return target[property]
+            if(property.startsWith && property.startsWith("_")){
+                return obj[property]
+            }
+
+            if(isPubliclyIterableSymbol(property) && isObject(target[property])) {
+                obj[property]=make_observable(obj[property], obj._proxy)
+            }
+
+            return obj[property]
         },
         set: (target, property, value) => {
             // dont overwrite setter of private properties
@@ -110,16 +123,22 @@ function make_observable(obj, parent=null) {
                 value=make_observable(value, obj._proxy)
                 current_target=value
 
-                let old_value=target[property]
+                let old_value=obj._proxy[property]
 
                 // if there was an object before, inherit its callbacks
                 if (isObject(old_value) && old_value._callbacks) {
+                    if(property=='well_selection'){
+                        console.log("hi",old_value._callbacks)
+                    }
                     for(let cb of old_value._callbacks){
+                        if(property=='well_selection'){
+                            console.log("hi")
+                        }
                         value.onChange(cb)
                     }
                 }
             }
-            const result = Reflect.set(target, property, value);
+            const result = Reflect.set(obj, property, value)
 
             // if the value was changed, call all callbacks, then call all callbacks of the parent object, etc.
             // only propagate the change to parents until an object is hit that has already been changed (rather, that has started propagating changes itself)
@@ -128,7 +147,7 @@ function make_observable(obj, parent=null) {
             // (the problem is that the value can be changed multiple times, but the callback is only run after the first change)
             let current_context_callbacks_registered=[]
             while(current_target){
-                if(current_target._proxy._callbacks_ongoing){
+                if(current_target._proxy==null || current_target._proxy._callbacks_ongoing){
                     break
                 }
                 current_context_callbacks_registered.push(current_target)
