@@ -95,15 +95,22 @@
         </style>
         <div id="main-content" class="tab-container data" p:init-vis="redirect_tab">
             <script>
+                // indicate that the url should not be changed when a tab is clicked
                 let change_location_on_tab_click=false
 
-                p.redirect_tab=function(_){
+                p.redirect_tab=function(_element){
+                    /// on page load, if the url contains a tab id, redirect to that tab
+
                     let tab_id=window.location.hash.substring(1)
 
-                    let tab_body_element=document.querySelector(window.location.hash)
-                    let tab_body_name=tab_body_element.getAttribute("tab-name")
-
                     if(tab_id){
+                        let tab_body_element=document.querySelector(window.location.hash)
+                        if(!tab_body_element){
+                            console.error('Tab with id "'+tab_id+'" does not exist!')
+                        }
+
+                        let tab_body_name=tab_body_element.getAttribute("tab-name")
+
                         let tab_element=document.querySelector(`[target-tab-name="${tab_body_name}"]`)
                         tab_element.click()
                     }
@@ -112,6 +119,8 @@
                 }
 
                 p.tab_to_url=function(entry){
+                    /// used by tabs to change the url to the tab id when the tab is clicked (i.e. body is visible)
+
                     if(!change_location_on_tab_click){
                         return
                     }
