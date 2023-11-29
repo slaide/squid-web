@@ -94,12 +94,148 @@
             }
         </style>
         <script>
-            p.config=make_observable({
-                well_selection:[],
-                grid:{},
-            })
+            p.plate_types=[
+                {
+                    'name':'Generic 96',
+                    'handle':'ge96',
+                    'category':'96 Well Plates',
+                    'well_count':96,
+                    'well_count_x':12,
+                    'well_count_y':8
+                },
+                {
+                    'name':'Perkin-Elmer 96',
+                    'handle':'pe96',
+                    'category':'96 Well Plates',
+                    'well_count':96,
+                    'well_count_x':12,
+                    'well_count_y':8
+                },
+                {
+                    'name':'Generic 384',
+                    'handle':'ge384',
+                    'category':'384 Well Plates',
+                    'well_count':384,
+                    'well_count_x':24,
+                    'well_count_y':16
+                },
+                {
+                    'name':'Perkin-Elmer 384',
+                    'handle':'pe384',
+                    'category':'384 Well Plates',
+                    'well_count':384,
+                    'well_count_x':24,
+                    'well_count_y':16
+                },
+                {
+                    'name':'Falcon 384',
+                    'handle':'fa384',
+                    'category':'384 Well Plates',
+                    'well_count':384,
+                    'well_count_x':24,
+                    'well_count_y':16
+                }
+            ]
+            p.get_plate_type=function(handle){
+                for(let plate_type of this.plate_types){
+                    if(plate_type.handle==handle){
+                        return plate_type
+                    }
+                }
+                return null
+            }
 
-            p.init_config=function(element){
+            p.camera_triggers=[
+                {
+                    'name':'Hardware',
+                    'handle':'hardware'
+                },
+                {
+                    'name':'Software',
+                    'handle':'software'
+                }
+            ]
+            p.get_camera_trigger=function(handle){
+                for(let camera_trigger of this.camera_triggers){
+                    if(camera_trigger.handle==handle){
+                        return camera_trigger
+                    }
+                }
+                return null
+            }
+
+            p.pixel_depths=[
+                {
+                    'name':'8 Bit (Monochrome)',
+                    'handle':'mono8'
+                },
+                {
+                    'name':'12 Bit (Monochrome)',
+                    'handle':'mono12'
+                }
+            ]
+            p.get_pixel_depth=function(handle){
+                for(let pixel_depth of this.pixel_depths){
+                    if(pixel_depth.handle==handle){
+                        return pixel_depth
+                    }
+                }
+                return null
+            }
+
+            p.image_formats=[
+                {
+                    'name':'TIFF',
+                    'handle':'tiff'
+                },
+                {
+                    'name':'TIFF (compressed)',
+                    'handle':'tiffcompressed'
+                }
+            ]
+            p.get_image_format=function(handle){
+                for(let image_format of this.image_formats){
+                    if(image_format.handle==handle){
+                        return image_format
+                    }
+                }
+                return null
+            }
+
+            p.objectives=[
+                {
+                    'name':'4x Magnification (Olympus)',
+                    'handle':'olympus4x'
+                },
+                {
+                    'name':'10x Magnification (Olympus)',
+                    'handle':'olympus10x'
+                },
+                {
+                    'name':'20x Magnification (Olympus)',
+                    'handle':'olympus20x'
+                }
+            ]
+            p.get_objective=function(handle){
+                for(let objective of this.objectives){
+                    if(objective.handle==handle){
+                        return objective
+                    }
+                }
+                return null
+            }
+
+            p.check_path_validity=function(event){
+                // TODO (send to server and ask if this ok)
+            }
+
+            // restore config from local storage (e.g. after [accidental] page reload)
+            const init_config=(function(){
+                this.config=make_observable({
+                    well_selection:[],
+                    grid:{},
+                })
+
                 let config_from_storage=localStorage.getItem("config")
                 config_from_storage=JSON.parse(config_from_storage)
                 if(config_from_storage){
@@ -107,14 +243,18 @@
                         this.config[key]=config_from_storage[key]
                     }
                 }
-            }
+            }).bind(p)
+
+            // required to build the rest of the page
+            init_config()
+
             p.store_config=function(info){
                 let config=info.currentTarget
                 let config_raw=config.copyRaw()
                 localStorage.setItem("config",JSON.stringify(config_raw))
             }
         </script>
-        <div id="main-content" class="tab-container data" p:init-vis="redirect_tab,init_config" p:on-objchange(p.config)="store_config">
+        <div id="main-content" class="tab-container data" p:init-vis="redirect_tab" p:on-objchange(p.config)="store_config">
             <script>
                 // indicate that the url should not be changed when a tab is clicked
                 let change_location_on_tab_click=false
@@ -224,9 +364,14 @@
                             }
                         }
                     </script>
+
                     <label class="data" p:tooltip="Name of the project that this plate is used for. Be aware of upper/lower case!" for="basic-config-project-name">Project Name</label>
                     <script>
                         p.init_project_name=function(element){
+                            if(this.config.project_name){
+                                element.value=this.config.project_name
+                                return
+                            }
                             this.set_project_name({currentTarget:element},false)
                         }
                         p.set_project_name=function(event,highlight_invalid=true){
@@ -242,6 +387,10 @@
                     <label class="data" p:tooltip="Name of the Well Plate. If the plate has a sticker with an ID, use that." for="basic-config-plate-name">Plate Name</label>
                     <script>
                         p.init_plate_name=function(element){
+                            if(this.config.plate_name){
+                                element.value=this.config.plate_name
+                                return
+                            }
                             this.set_plate_name({currentTarget:element},false)
                         }
                         p.set_plate_name=function(event,highlight_invalid=true){
@@ -256,59 +405,13 @@
 
                     <label class="data" for="basic-config-plate-type">Plate Type</label>
                     <script>
-                        p.plate_types=[
-                            {
-                                'name':'Generic 96',
-                                'handle':'ge96',
-                                'category':'96 Well Plates',
-                                'well_count':96,
-                                'well_count_x':12,
-                                'well_count_y':8
-                            },
-                            {
-                                'name':'Perkin-Elmer 96',
-                                'handle':'pe96',
-                                'category':'96 Well Plates',
-                                'well_count':96,
-                                'well_count_x':12,
-                                'well_count_y':8
-                            },
-                            {
-                                'name':'Generic 384',
-                                'handle':'ge384',
-                                'category':'384 Well Plates',
-                                'well_count':384,
-                                'well_count_x':24,
-                                'well_count_y':16
-                            },
-                            {
-                                'name':'Perkin-Elmer 384',
-                                'handle':'pe384',
-                                'category':'384 Well Plates',
-                                'well_count':384,
-                                'well_count_x':24,
-                                'well_count_y':16
-                            },
-                            {
-                                'name':'Falcon 384',
-                                'handle':'fa384',
-                                'category':'384 Well Plates',
-                                'well_count':384,
-                                'well_count_x':24,
-                                'well_count_y':16
-                            }
-                        ]
-                        p.get_plate_type=function(handle){
-                            for(let plate_type of this.plate_types){
-                                if(plate_type.handle==handle){
-                                    return plate_type
-                                }
-                            }
-                            return null
-                        }
                         p.init_plate_type_dropdown=function(element){
                             this.create_dropdown(element,this.plate_types)
 
+                            if(this.config.plate_type){
+                                element.value=this.config.plate_type.handle
+                                return
+                            }
                             this.set_wellplate_type({currentTarget:element})
                         }
                         p.set_wellplate_type=function(event){
@@ -320,6 +423,10 @@
                     <label class="data" p:tooltip="Name of Cell Line used on the plate." for="basic-config-cell-line">Cell Line</label>
                     <script>
                         p.init_cell_line=function(element){
+                            if(this.config.cell_line){
+                                element.value=this.config.cell_line
+                                return
+                            }
                             this.set_cell_line({currentTarget:element},false)
                         }
                         p.set_cell_line=function(event,highlight_invalid=true){
@@ -334,8 +441,12 @@
 
                     <label class="data" p:tooltip="Base folder that will contain further folders with the images later. TODO: allow browsing the filesystem for this!" for="basic-config-base-path">Base Storage Path</label>
                     <script>
-                        p.check_path_validity=function(event){
-                            // TODO (send to server and ask if this ok)
+                        p.init_base_path=function(element){
+                            if(this.config.base_path){
+                                element.value=this.config.base_path
+                                return
+                            }
+                            this.set_base_path({currentTarget:element},false)
                         }
                         p.set_base_path=function(event,highlight_invalid=true){
                             let value=event.currentTarget.value
@@ -344,37 +455,21 @@
                             }
                             this.check_path_validity(event,highlight_invalid)
                         }
-                        p.init_base_path=function(element){
-                            this.set_base_path({currentTarget:element},false)
-                        }
                     </script>
                     <input type="text" id="basic-config-base-path" placeholder="Please enter the Base Path" class="data" p:init="init_base_path" p:on-input="set_base_path,check_path_validity" p:on-mouseover,focus="check_path_validity" value="/mnt/squid"/>
 
                     <label class="data" p:tooltip="Trigger source for the imaging camera." for="basic-config-camera-trigger">Camera Trigger</label>
                     <script>
-                        p.camera_triggers=[
-                            {
-                                'name':'Hardware',
-                                'handle':'hardware'
-                            },
-                            {
-                                'name':'Software',
-                                'handle':'software'
-                            }
-                        ]
-                        p.get_camera_trigger=function(handle){
-                            for(let camera_trigger of this.camera_triggers){
-                                if(camera_trigger.handle==handle){
-                                    return camera_trigger
-                                }
-                            }
-                            return null
-                        }
                         p.set_camera_trigger=function(event){
                             this.config.camera_trigger=this.get_camera_trigger(event.currentTarget.value)
                         }
                         p.init_camera_trigger_dropdown=function(element){
                             this.create_dropdown(element,this.camera_triggers)
+
+                            if(this.config.camera_trigger){
+                                element.value=this.config.camera_trigger.handle
+                                return
+                            }
                             this.set_camera_trigger({currentTarget:element})
                         }
                     </script>
@@ -382,26 +477,13 @@
 
                     <label class="data" p:tooltip="Imaging camera pixel sensitivity/depth." for="basic-config-pixel-depth">Camera Pixel Depth</label>
                     <script>
-                        p.pixel_depths=[
-                            {
-                                'name':'8 Bit (Monochrome)',
-                                'handle':'mono8'
-                            },
-                            {
-                                'name':'12 Bit (Monochrome)',
-                                'handle':'mono12'
-                            }
-                        ]
-                        p.get_pixel_depth=function(handle){
-                            for(let pixel_depth of this.pixel_depths){
-                                if(pixel_depth.handle==handle){
-                                    return pixel_depth
-                                }
-                            }
-                            return null
-                        }
                         p.init_pixel_depth_dropdown=function(element){
                             this.create_dropdown(element,this.pixel_depths)
+
+                            if(this.config.pixel_depth){
+                                element.value=this.config.pixel_depth.handle
+                                return
+                            }
                             this.set_pixel_depth({currentTarget:element})
                         }
                         p.set_pixel_depth=function(event){
@@ -412,26 +494,13 @@
 
                     <label for="basic-config-image-format">Image File Format</label>
                     <script>
-                        p.image_formats=[
-                            {
-                                'name':'TIFF',
-                                'handle':'tiff'
-                            },
-                            {
-                                'name':'TIFF (compressed)',
-                                'handle':'tiffcompressed'
-                            }
-                        ]
-                        p.get_image_format=function(handle){
-                            for(let image_format of this.image_formats){
-                                if(image_format.handle==handle){
-                                    return image_format
-                                }
-                            }
-                            return null
-                        }
                         p.init_image_format_dropdown=function(element){
                             this.create_dropdown(element,this.image_formats)
+
+                            if(this.config.image_format){
+                                element.value=this.config.image_format.handle
+                                return
+                            }
                             this.set_image_format({currentTarget:element})
                         }
                         p.set_image_format=function(event){
@@ -442,30 +511,13 @@
 
                     <label class="data" p:tooltip="The objective that is currently physically installed on the microscope. (This microscope does not support automatically switching to a different objective, this has to be done manually!)" for="basic-config-objective">Objective</label>
                     <script>
-                        p.objectives=[
-                            {
-                                'name':'4x Magnification (Olympus)',
-                                'handle':'olympus4x'
-                            },
-                            {
-                                'name':'10x Magnification (Olympus)',
-                                'handle':'olympus10x'
-                            },
-                            {
-                                'name':'20x Magnification (Olympus)',
-                                'handle':'olympus20x'
-                            }
-                        ]
-                        p.get_objective=function(handle){
-                            for(let objective of this.objectives){
-                                if(objective.handle==handle){
-                                    return objective
-                                }
-                            }
-                            return null
-                        }
                         p.init_objective_dropdown=function(element){
                             this.create_dropdown(element,this.objectives)
+
+                            if(this.config.objective){
+                                element.value=this.config.objective.handle
+                                return
+                            }
                             this.set_objective({currentTarget:element})
                         }
                         p.set_objective=function(event){
