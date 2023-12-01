@@ -233,6 +233,57 @@
                 // TODO (send to server and ask if this ok)
             }
 
+            p.light_sources=[
+                {
+                    'name':'405nm Laser',
+                    'handle':'laser405nm',
+                    'category':'Fluorescence'
+                },
+                {
+                    'name':'488nm Laser',
+                    'handle':'laser488nm',
+                    'category':'Fluorescence'
+                },
+                {
+                    'name':'561nm Laser',
+                    'handle':'laser561nm',
+                    'category':'Fluorescence'
+                },
+                {
+                    'name':'638nm Laser',
+                    'handle':'laser638nm',
+                    'category':'Fluorescence'
+                },
+                {
+                    'name':'730nm Laser',
+                    'handle':'laser730nm',
+                    'category':'Fluorescence'
+                },
+                {
+                    'name':'Brightfield LED (full)',
+                    'handle':'bffull',
+                    'category':'Brightfield'
+                },
+                {
+                    'name':'Brightfield LED (right half)',
+                    'handle':'bfrighthalf',
+                    'category':'Brightfield'
+                },
+                {
+                    'name':'Brightfield LED (left half)',
+                    'handle':'bflefthalf',
+                    'category':'Brightfield'
+                },
+            ]
+            p.get_lightsource=function(lightsource_handle){
+                for(let lightsource of this.light_sources){
+                    if(lightsource.handle==lightsource_handle){
+                        return lightsource
+                    }
+                }
+                return null
+            }
+
             // restore config from local storage (e.g. after [accidental] page reload)
             const init_config=(function(){
                 this.config=make_observable({
@@ -1349,10 +1400,7 @@
                                         item.setAttribute("grid-row",y)
                                         item.setAttribute("grid-col",x)
 
-                                        if(row[x]===false){
-                                            // this might be on the template!
-                                            item.classList.remove("selected")
-                                        }else{
+                                        if(row[x]!==false){
                                             item.classList.add("selected")
                                             row[x]=true
                                         }
@@ -1387,7 +1435,7 @@
                         </script>
                         <div id="grid-mask-selection-container" class="data" p:init-vis="adjust_children" p:on-objchange(p.config.grid.num_x&p.config.grid.num_y)="adjust_children">
                             <template name="grid_mask_selection_item">
-                                <div class="grid-mask-selection-item selected data" p:on-click="grid_mask_item_toggle"></div>
+                                <div class="grid-mask-selection-item data" p:on-click="grid_mask_item_toggle"></div>
                             </template>
                         </div>
                     </div>
@@ -1418,55 +1466,14 @@
                 <script>
                     p.add_channel_config_item=function(event){
                         let channel_config_item_template=p.templates["channel_config_item"]
-                        let channel_config_item=channel_config_item_template.cloneNode(true)
+                        let channel_config_item=channel_config_item_template.cloneNode(true).children[0]
+                        if(event.init_from_existing_channel_index!=null){
+                            channel_config_item.setAttribute("init-from-existing-channel-index",event.init_from_existing_channel_index)
+                            console.log("init from existing channel",event.init_from_existing_channel_index)
+                        }
 
-                        let channel_container=event.currentTarget.parentNode
-                        channel_container.insertBefore(channel_config_item,event.currentTarget)
-                    }
-                    p.light_sources=[
-                        {
-                            'name':'405nm Laser',
-                            'handle':'laser405nm',
-                            'category':'Fluorescence'
-                        },
-                        {
-                            'name':'488nm Laser',
-                            'handle':'laser488nm',
-                            'category':'Fluorescence'
-                        },
-                        {
-                            'name':'561nm Laser',
-                            'handle':'laser561nm',
-                            'category':'Fluorescence'
-                        },
-                        {
-                            'name':'638nm Laser',
-                            'handle':'laser638nm',
-                            'category':'Fluorescence'
-                        },
-                        {
-                            'name':'730nm Laser',
-                            'handle':'laser730nm',
-                            'category':'Fluorescence'
-                        },
-                        {
-                            'name':'Brightfield LED (full)',
-                            'handle':'bffull',
-                            'category':'Brightfield'
-                        },
-                        {
-                            'name':'Brightfield LED (right half)',
-                            'handle':'bfrighthalf',
-                            'category':'Brightfield'
-                        },
-                        {
-                            'name':'Brightfield LED (left half)',
-                            'handle':'bflefthalf',
-                            'category':'Brightfield'
-                        },
-                    ]
-                    p.init_lightsource_dropdown=function(element){
-                        this.create_dropdown(element,this.light_sources)
+                        let channel_container=document.querySelector("#channel-container")
+                        channel_container.insertBefore(channel_config_item,channel_container.children[channel_container.children.length-1])
                     }
 
                     p.channel_move_up=function(event){
@@ -1506,6 +1513,17 @@
                         let z_offset=channel_config_item.children[11].children[0].value
 
                         console.log("investigate channel",channel_name,lightsource,exposure_time,illumination,analog_gain,z_offset)
+                    }
+
+                    p.init_imaging_channels=function(element){
+                        if(!this.config.imaging_channels){
+                            this.config.imaging_channels=[]
+                        }
+                    }
+                    p.load_imaging_channels=function(_){
+                        for(let i=0;i<this.config.imaging_channels.length;i++){
+                            this.add_channel_config_item({init_from_existing_channel_index:i})
+                        }
                     }
                 </script>
                 <style>
@@ -1557,10 +1575,50 @@
                         grid-template-columns:1fr auto;
                     }
                 </style>
-                <div id="channel-container" class="data">
+                <div id="channel-container" class="data" p:init="init_imaging_channels" p:init-vis="load_imaging_channels">
                     <template name="channel_config_item">
-                        <div class="channel-config-item">
+                        <div class="channel-config-item data" p:init-vis="init_channel">
                             <script>
+                                p.init_channel=function(element){
+                                    let init_from_existing_channel_index=element.getAttribute("init-from-existing-channel-index")
+
+                                    let channel_index=this.config.imaging_channels.length
+
+                                    // initialise to some arbitrary defult
+                                    let channel_config={
+                                        lightsource:this.light_sources[0],
+                                        exposure_time:10,
+                                        light_power:100,
+                                        analog_gain:0,
+                                        z_offset:0
+                                    }
+
+                                    if(init_from_existing_channel_index!==null){
+                                        channel_index=init_from_existing_channel_index
+
+                                        let existing_channel_config=this.config.imaging_channels[init_from_existing_channel_index]
+                                        channel_config={
+                                            lightsource:existing_channel_config.lightsource,
+                                            exposure_time:existing_channel_config.exposure_time,
+                                            light_power:existing_channel_config.light_power,
+                                            analog_gain:existing_channel_config.analog_gain,
+                                            z_offset:existing_channel_config.z_offset
+                                        }
+                                    }else{
+                                        this.config.imaging_channels.push(channel_config)
+                                    }
+
+                                    element.setAttribute("channel-index",channel_index)
+
+                                    let lightsource_dropdown_element=element.querySelector(".imaging-channel-lightsource")
+                                    lightsource_dropdown_element.value=channel_config.lightsource.handle
+                                    this.set_lightsource({currentTarget:lightsource_dropdown_element,target:lightsource_dropdown_element})
+
+                                    element.querySelector(".imaging-channel-exposure-time").value=channel_config.exposure_time
+                                    element.querySelector(".imaging-channel-light-power").value=channel_config.light_power
+                                    element.querySelector(".imaging-channel-analog-gain").value=channel_config.analog_gain
+                                    element.querySelector(".imaging-channel-z-offset").value=channel_config.z_offset
+                                }
                                 p.validate_channel_name=function(event){
                                     element=event.currentTarget
                                     if(!element){
@@ -1581,28 +1639,82 @@
                             <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
 
                             <label>Light source:</label>
-                            <select class="col-3 data" p:init="init_lightsource_dropdown"></select>
+                            <select class="imaging-channel-lightsource col-3 data" p:init="init_lightsource_dropdown" p:on-change="set_lightsource"></select>
+                            <script>
+                                p.init_lightsource_dropdown=function(element){
+                                    this.create_dropdown(element,this.light_sources)
+                                }
+                                p.set_lightsource=function(event){
+                                    let element=event.currentTarget || event
+
+                                    let channel_index=element.parentNode.getAttribute("channel-index")
+                                    let lightsource_handle=element.value
+
+                                    let lightsource=p.get_lightsource(lightsource_handle)
+                                    p.config.imaging_channels[channel_index].lightsource=lightsource
+                                }
+                            </script>
 
                             <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
                             <div class="input-unit-container">
-                                <input type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false"/>
+                                <input class="imaging-channel-exposure-time data" type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false" p:on-change="set_exposure_time"/>
                                 <p>ms</p>
                             </div>
+                            <script>
+                                p.set_exposure_time=function(event){
+                                    let element=event.currentTarget || event
+
+                                    let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                    let exposure_time=element.value
+
+                                    p.config.imaging_channels[channel_index].exposure_time=exposure_time
+                                }
+                            </script>
 
                             <label class="data" p:tooltip="Fraction of the maximum power of the light source with which it illuminates the sample. Must be in range [0;100%]">Light Power:</label>
                             <div class="input-unit-container">
-                                <input type="number" min="0" max="100" step="0.1" value="100" wheel-adjust="false"/>
+                                <input class="imaging-channel-light-power data" type="number" min="0" max="100" step="0.1" wheel-adjust="false" p:on-change="set_light_power"/>
                                 <p>%</p>
                             </div>
+                            <script>
+                                p.set_light_power=function(event){
+                                    let element=event.currentTarget || event
+
+                                    let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                    let light_power=element.value
+
+                                    p.config.imaging_channels[channel_index].light_power=light_power
+                                }
+                            </script>
 
                             <label class="data" p:tooltip="Analog gain increases the camera sensor sensitivity. This makes a weaker signal appear stronger, but may increase the level of noise in the image.">Analog Gain:</label>
-                            <input type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false"/>
+                            <input class="imaging-channel-analog-gain data" type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false" p:on-change="set_analog_gain"/>
+                            <script>
+                                p.set_analog_gain=function(event){
+                                    let element=event.currentTarget || event
+
+                                    let channel_index=element.parentNode.getAttribute("channel-index")
+                                    let analog_gain=element.value
+
+                                    p.config.imaging_channels[channel_index].analog_gain=analog_gain
+                                }
+                            </script>
 
                             <label class="data" p:tooltip="The z-offset of the imaging plane of this channel from the focus plane of the current position.">Z-Offset:</label>
                             <div class="input-unit-container">
-                                <input type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false"/>
+                                <input class="imaging-channel-z-offset data" type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false" p:on-change="set_z_offset"/>
                                 <p>um</p>
                             </div>
+                            <script>
+                                p.set_z_offset=function(event){
+                                    let element=event.currentTarget || event
+
+                                    let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                    let z_offset=element.value
+
+                                    p.config.imaging_channels[channel_index].z_offset=z_offset
+                                }
+                            </script>
 
                             <button class="data" p:tooltip="Move this channel up in the imaging order." p:on-click="channel_move_up">Move Up</button>
                             <button class="data" p:tooltip="Move this channel down in the imaging order."  p:on-click="channel_move_down">Move Down</button>
