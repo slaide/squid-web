@@ -51,6 +51,10 @@
             .has-tooltip:not(button){
                 cursor:help;
             }
+            input[disabled]{
+                pointer-events: none;
+                text-decoration: line-through;
+            }
         </style>
         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
         <script src="components/p/init.js"></script>
@@ -1031,10 +1035,6 @@
                         display:grid;
                         grid-template-columns: repeat(5,auto);
                     }
-                    .input-disabled {
-                        pointer-events: none;
-                        text-decoration: line-through;
-                    }
                     #grid-config-container input{
                         margin-left:0.5em;
                         margin-right:0.5em;
@@ -1056,10 +1056,10 @@
                         for(let input_id of inputs_to_disable_on_num_one){
                             let input_element=document.querySelector(input_id)
                             if(num==1){
-                                input_element.classList.add("input-disabled")
+                                input_element.setAttribute("disabled","")
                                 input_element.disabled=true
                             }else{
-                                input_element.classList.remove("input-disabled")
+                                input_element.setAttribute("disabled",null)
                                 input_element.disabled=false
                             }
                         }
@@ -1333,6 +1333,7 @@
                 }
             </style>
             <div class="tab-body data" tab-name="channel + focus setup" id="channel-focus-setup" p:on-vis-change="tab_to_url">
+                <!-- left side (channel overview) -->
                 <script>
                     p.add_channel_config_item=function(event){
                         let channel_config_item_template=p.templates["channel_config_item"]
@@ -1475,7 +1476,6 @@
                         grid-template-columns:1fr auto;
                     }
                 </style>
-                <!-- left side (channel overview) -->
                 <div id="channel-container" class="data">
                     <template name="channel_config_item">
                         <div class="channel-config-item">
@@ -1557,24 +1557,12 @@
                         <div>
                             <div>current position:</div>
                             <div class="xyz-pos-grid">
-                                <label>x</label><input type="number" value="34.91"/><p>mm</p>
-                                <label>y</label><input type="number" value="54.34"/><p>mm</p>
+                                <label>x</label><input type="number" value="34.91" disabled="false"/><p>mm</p>
+                                <label>y</label><input type="number" value="54.34" disabled/><p>mm</p>
                                 <label>z</label><input type="number" value="2345.67"/><p>um</p>
                             </div>
                         </div>
-
-                        <div>
-                            <select>
-                                <option>move to (absolute)</option>
-                                <option selected>move by (relative)</option>
-                            </select>
-                            <div class="xyz-pos-grid">
-                                <label>x</label><input type="number" value="0"/><p>mm</p>
-                                <label>y</label><input type="number" value="0"/><p>mm</p>
-                                <label>z</label><input type="number" value="0"/><p>um</p>
-                            </div>
-                            <button>execute</button>
-                        </div>
+                        
                         
                         <div>
                             <div>go to</div>
