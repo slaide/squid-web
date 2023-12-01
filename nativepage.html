@@ -1682,7 +1682,7 @@
                                 <script>
                                     p.plotly_resize=function(element){
                                         // if plot is not yet present, do nothing
-                                        if(!element.firstElementChild){
+                                        if("style script".indexOf(element.lastElementChild.tagName.toLowerCase())>-1){
                                             return
                                         }
                                         
