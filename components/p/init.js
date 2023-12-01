@@ -152,7 +152,6 @@ function make_observable(obj, parent=null) {
 
             for(let unroll_target of current_context_callbacks_registered){
                 unroll_target._proxy._callbacks_ongoing=false
-                unroll_target=unroll_target._parent
             }
 
             return result;
@@ -626,9 +625,15 @@ let p={
                     let wheel_adjust=element.getAttribute("wheel-adjust")
                     if(wheel_adjust==null || wheel_adjust==true || wheel_adjust=="true"){
                         function number_on_wheel(event){
-                            event.preventDefault()
-
                             let event_target=event.currentTarget
+
+                            // mimic behaviour of disabled input fields
+                            let event_target_is_disabled=event_target.getAttribute("disabled")
+                            if(event_target_is_disabled != null){
+                                return
+                            }
+
+                            event.preventDefault()
 
                             let min_value=parseFloat(event_target.getAttribute("min"))
                             let max_value=parseFloat(event_target.getAttribute("max"))

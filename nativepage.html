@@ -1100,73 +1100,141 @@
                         p.set_grid("delta_t_s",event,[],"float")
                     }
 
-                    p.init_grid=function(_){
-                        let grid_num_x_element=document.querySelector("#grid-num-x")
-                        this.set_grid_num_x({currentTarget:grid_num_x_element,target:grid_num_x_element})
-                        let grid_num_y_element=document.querySelector("#grid-num-y")
-                        this.set_grid_num_y({currentTarget:grid_num_y_element,target:grid_num_y_element})
-                        let grid_num_z_element=document.querySelector("#grid-num-z")
-                        this.set_grid_num_z({currentTarget:grid_num_z_element,target:grid_num_z_element})
-                        let grid_num_t_element=document.querySelector("#grid-num-t")
-                        this.set_grid_num_t({currentTarget:grid_num_t_element,target:grid_num_t_element})
+                    p.init_grid_num_x=function(element){
+                        if(this.config.grid && this.config.grid.num_x){
+                            element.value=this.config.grid.num_x
+                            return
+                        }
 
-                        let grid_delta_x_element=document.querySelector("#grid-config-delta-x")
+                        let grid_num_x_element=element
+                        this.set_grid_num_x({currentTarget:grid_num_x_element,target:grid_num_x_element})
+                    }
+                    p.init_grid_num_y=function(element){
+                        if(this.config.grid && this.config.grid.num_y){
+                            element.value=this.config.grid.num_y
+                            return
+                        }
+
+                        let grid_num_y_element=element
+                        this.set_grid_num_y({currentTarget:grid_num_y_element,target:grid_num_y_element})
+                    }
+                    p.init_grid_num_z=function(element){
+                        if(this.config.grid && this.config.grid.num_z){
+                            element.value=this.config.grid.num_z
+                            return
+                        }
+
+                        let grid_num_z_element=element
+                        this.set_grid_num_z({currentTarget:grid_num_z_element,target:grid_num_z_element})
+                    }
+                    p.init_grid_num_t=function(element){
+                        if(this.config.grid && this.config.grid.num_t){
+                            element.value=this.config.grid.num_t
+                            return
+                        }
+
+                        let grid_num_t_element=element
+                        this.set_grid_num_t({currentTarget:grid_num_t_element,target:grid_num_t_element})
+                    }
+                    p.init_grid_delta_x=function(element){
+                        if(this.config.grid && this.config.grid.delta_x){
+                            element.value=this.config.grid.delta_x
+                            return
+                        }
+
+                        let grid_delta_x_element=element
                         this.set_grid_delta_x({currentTarget:grid_delta_x_element,target:grid_delta_x_element})
-                        let grid_delta_y_element=document.querySelector("#grid-config-delta-y")
+                    }
+                    p.init_grid_delta_y=function(element){
+                        if(this.config.grid && this.config.grid.delta_y){
+                            element.value=this.config.grid.delta_y
+                            return
+                        }
+
+                        let grid_delta_y_element=element
                         this.set_grid_delta_y({currentTarget:grid_delta_y_element,target:grid_delta_y_element})
-                        let grid_delta_z_element=document.querySelector("#grid-config-delta-z")
+                    }
+                    p.init_grid_delta_z=function(element){
+                        if(this.config.grid && this.config.grid.delta_z){
+                            element.value=this.config.grid.delta_z
+                            return
+                        }
+
+                        let grid_delta_z_element=element
                         this.set_grid_delta_z({currentTarget:grid_delta_z_element,target:grid_delta_z_element})
-                        let grid_delta_t_hours_element=document.querySelector("#grid-config-delta-t-hours")
+                    }
+
+                    p.init_grid_delta_t_hours=function(element){
+                        if(this.config.grid && this.config.grid.delta_t_h){
+                            element.value=this.config.grid.delta_t_h
+                            return
+                        }
+
+                        let grid_delta_t_hours_element=element
                         this.set_grid_delta_t_h({currentTarget:grid_delta_t_hours_element,target:grid_delta_t_hours_element})
-                        let grid_delta_t_minutes_element=document.querySelector("#grid-config-delta-t-minutes")
+                    }
+                    p.init_grid_delta_t_minutes=function(element){
+                        if(this.config.grid && this.config.grid.delta_t_m){
+                            element.value=this.config.grid.delta_t_m
+                            return
+                        }
+
+                        let grid_delta_t_minutes_element=element
                         this.set_grid_delta_t_m({currentTarget:grid_delta_t_minutes_element,target:grid_delta_t_minutes_element})
-                        let grid_delta_t_seconds_element=document.querySelector("#grid-config-delta-t-seconds")
+                    }
+                    p.init_grid_delta_t_seconds=function(element){
+                        if(this.config.grid && this.config.grid.delta_t_s){
+                            element.value=this.config.grid.delta_t_s
+                            return
+                        }
+
+                        let grid_delta_t_seconds_element=element
                         this.set_grid_delta_t_s({currentTarget:grid_delta_t_seconds_element,target:grid_delta_t_seconds_element})
                     }
                 </script>
-                <div id="grid-config-container" class="data" p:init="init_grid">
+                <div id="grid-config-container" class="data">
                     <h2>Imaging positions within well</h2>
 
                     <label class="data" p:tooltip="number of x steps to image at within a well">num x positions:</label>
-                    <input id="grid-num-x" class="data" type="number" min="1" max="10" step="1" value="2" p:on-change="set_grid_num_x"/>
+                    <input id="grid-num-x" class="data" type="number" min="1" max="10" step="1" value="2" p:init="init_grid_num_x" p:on-change="set_grid_num_x"/>
                     <label class="data" p:tooltip="distance between x steps within well">delta x:</label>
                     <div class="input-unit-container">
-                        <input id="grid-config-delta-x" type="number" min="0.1" max="100" step="0.1" value="0.9"/>
+                        <input id="grid-config-delta-x" class="data" type="number" min="0.1" max="100" step="0.1" value="0.9" p:init="init_grid_delta_x" p:on-change="set_grid_delta_x"/>
                         <p>mm</p>
                     </div>
 
                     <label class="data" p:tooltip="number of y steps to image at within a well">num y positions:</label>
-                    <input id="grid-num-y" class="data" type="number" min="1" max="10" step="1" value="2" p:on-change="set_grid_num_y"/>
+                    <input id="grid-num-y" class="data" type="number" min="1" max="10" step="1" value="2" p:init="init_grid_num_y"  p:on-change="set_grid_num_y"/>
                     <label class="data" p:tooltip="distance between y steps within well">delta y:</label>
                     <div class="input-unit-container">
-                        <input id="grid-config-delta-y" type="number" min="0.1" max="100" step="0.1" value="0.9"/>
+                        <input id="grid-config-delta-y" class="data" type="number" min="0.1" max="100" step="0.1" value="0.9" p:init="init_grid_delta_y" p:on-change="set_grid_delta_y"/>
                         <p>mm</p>
                     </div>
 
                     <label class="data" p:tooltip="number of z steps to image at within a well">num z positions:</label>
-                    <input id="grid-num-z" class="data" type="number" min="1" max="1000" step="1" value="1" p:on-change="set_grid_num_z"/>
+                    <input id="grid-num-z" class="data" type="number" min="1" max="1000" step="1" value="1" p:init="init_grid_num_z"  p:on-change="set_grid_num_z"/>
                     <label class="data" p:tooltip="distance between images in a z-stack">delta z:</label>
                     <div class="input-unit-container">
-                        <input id="grid-config-delta-z" type="number" min="0.1" max="100" step="0.1" value="3.0"/>
+                        <input id="grid-config-delta-z" class="data" type="number" min="0.1" max="100" step="0.1" value="3.0" p:init="init_grid_delta_z" p:on-change="set_grid_delta_z"/>
                         <p>um</p>
                     </div>
 
                     <label>num timepoints:</label>
-                    <input id="grid-num-t" class="data" type="number" min="1" max="999" step="1" value="1" p:on-change="set_grid_num_t"/>
+                    <input id="grid-num-t" class="data" type="number" min="1" max="999" step="1" value="1" p:init="init_grid_num_t"  p:on-change="set_grid_num_t"/>
                     <label>delta t:</label>
                     <div id="grid-config-delta-t">
                         <div class="input-unit-container">
-                            <input id="grid-config-delta-t-hours" type="number" min="0" max="999" step="1" value="2"/>
+                            <input id="grid-config-delta-t-hours" class="data"type="number" min="0" max="999" step="1" value="2" p:init="init_grid_delta_t_hours" p:on-change="set_grid_delta_t_h"/>
                             <p>h</p>
                         </div>
                         <p>,</p>
                         <div class="input-unit-container">
-                            <input id="grid-config-delta-t-minutes" type="number" min="0" max="59" step="1" value="0"/>
+                            <input id="grid-config-delta-t-minutes" class="data" type="number" min="0" max="59" step="1" value="0" p:init="init_grid_delta_t_minutes" p:on-change="set_grid_delta_t_m"/>
                             <p>m</p>
                         </div>
                         <p>,</p>
                         <div class="input-unit-container">
-                            <input id="grid-config-delta-t-seconds" type="number" min="0" max="59" step="1" value="0"/>
+                            <input id="grid-config-delta-t-seconds" class="data" type="number" min="0" max="59" step="1" value="0" p:init="init_grid_delta_t_seconds" p:on-change="set_grid_delta_t_s"/>
                             <p>s</p>
                         </div>
                     </div>
@@ -1253,7 +1321,9 @@
                                 let num_x=this.config.grid.num_x+1
                                 let num_y=this.config.grid.num_y+1
 
-                                this.config.grid.mask=[]
+                                if(!this.config.grid.mask){
+                                    this.config.grid.mask=[]
+                                }
 
                                 while(element.firstElementChild){
                                     element.removeChild(element.firstElementChild)
@@ -1264,8 +1334,14 @@
                                 element.style.setProperty("--num-cols",num_x)
                                 element.style.setProperty("--num-rows",num_y)
 
+                                this.config.grid.mask.length=num_y-1
                                 for(let y=0;y<num_y-1;y++){
-                                    let row=[]
+                                    if(!Array.isArray(this.config.grid.mask[y])){
+                                        this.config.grid.mask[y]=[]
+                                    }
+                                    let row=this.config.grid.mask[y]
+
+                                    row.length=num_x-1
                                     for(let x=0;x<num_x-1;x++){
                                         let item=this.templates.grid_mask_selection_item.cloneNode(true).firstElementChild
                                         element.appendChild(item)
@@ -1273,9 +1349,14 @@
                                         item.setAttribute("grid-row",y)
                                         item.setAttribute("grid-col",x)
 
-                                        row.push(true)
+                                        if(row[x]===false){
+                                            // this might be on the template!
+                                            item.classList.remove("selected")
+                                        }else{
+                                            item.classList.add("selected")
+                                            row[x]=true
+                                        }
                                     }
-                                    this.config.grid.mask.push(row)
                                 }
 
                                 let blank_item=document.createElement("div")
@@ -1847,6 +1928,9 @@
                         let num_selections_in_mask=0
                         if(this.config.grid.mask){
                             for(let row of this.config.grid.mask){
+                                if(!row){
+                                    continue
+                                }
                                 for(let item of row){
                                     if(item){
                                         num_selections_in_mask++
