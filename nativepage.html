@@ -651,7 +651,7 @@
                     }
                 </style>
                 <script>
-                    let well_selection_init_done=false
+                    p.well_selection_init=make_observable({done:false})
 
                     p.init_well_selection=function(element){
                         this.well_drag={}
@@ -751,7 +751,7 @@
                             child.style.display=null
                         }
 
-                        well_selection_init_done=true
+                        p.well_selection_init.done=true
                     }
                     p.well_set_selected=function(element){
                         let well_row=element.getAttribute("plate-row")
@@ -955,7 +955,7 @@
 
                     <script>
                         p.get_num_selected_wells=function(){
-                            if(!well_selection_init_done){
+                            if(!p.well_selection_init.done){
                                 return 0
                             }
 
@@ -1693,6 +1693,11 @@
 
                                 <script>
                                     p.plotly_resize=function(element){
+                                        // if plot is not yet present, do nothing
+                                        if(!element.firstElementChild){
+                                            return
+                                        }
+                                        
                                         let plotContainer=element
                                         let update={
                                             width: plotContainer.clientWidth,
@@ -1849,6 +1854,7 @@
                     }
                     p.review_set_grid_positions=function(info){
                         let element=info.element || info
+
                         // get number of selected items in the grid mask
                         let num_selections_in_mask=0
                         if(this.config.grid.mask){
@@ -1860,6 +1866,7 @@
                                 }
                             }
                         }
+
                         // calculate total number of positions per wlel
                         let num_total_positions_per_well=num_selections_in_mask*this.config.grid.num_z*this.config.grid.num_t
                         element.innerText=`${num_total_positions_per_well} ( x: ${this.config.grid.num_x} , y: ${this.config.grid.num_y} , z: ${this.config.grid.num_z} , t: ${this.config.grid.num_t} , mask: ${num_selections_in_mask}/${this.config.grid.num_x*this.config.grid.num_y})`
@@ -1894,7 +1901,7 @@
 
                     <div class="config-accepted"></div>
                     <div>num wells selected:</div>
-                    <div class="data" p:init="review_set_wells_selected" p:on-objchange(p.config.well_selection)="review_set_wells_selected" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]"></div>
+                    <div class="data" p:init-vis="review_set_wells_selected" p:on-objchange(p.config.well_selection&p.well_selection_init.done)="review_set_wells_selected" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]"></div>
 
                     <div class="config-accepted"></div>
                     <div>Positions per well:</div>

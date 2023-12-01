@@ -486,6 +486,10 @@ let p={
                                     })
                                     attribute_change_observer.observe(element,{attributes:true})
                                 }else if(event_name.startsWith("objchange")){
+                                    if(!event_name.startsWith("objchange(") || !event_name.endsWith(")")){
+                                        console.error("objchange event name malformed: "+event_name+" (must be of the form 'objchange(obj1&obj2&...)' - notably: do NOT use commas! the browser will truncate the attribute name after the first comma!")
+                                    }
+
                                     let obj_list_string=event_name.replace("objchange(","").replace(")","")
                                     // separator must not be comma! (the property names is cut off at the first comma by the browser)
                                     let obj_list=obj_list_string.split("&")
