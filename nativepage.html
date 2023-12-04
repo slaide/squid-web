@@ -1569,15 +1569,9 @@
                     p.investigate_channel=function(event){
                         event.currentTarget.parentElement.classList.toggle("active")
 
-                        let channel_config_item=event.currentTarget.parentNode
-                        let channel_name=channel_config_item.children[0].value
-                        let lightsource=channel_config_item.children[3].value
-                        let exposure_time=channel_config_item.children[5].children[0].value
-                        let illumination=channel_config_item.children[7].children[0].value
-                        let analog_gain=channel_config_item.children[9].value
-                        let z_offset=channel_config_item.children[11].children[0].value
+                        let channel_config=this.config.imaging_channels[event.currentTarget.parentElement.getAttribute("channel-index")]
 
-                        console.log("investigate channel",channel_name,lightsource,exposure_time,illumination,analog_gain,z_offset)
+                        console.log("investigate channel",channel_config.copyRaw())
                     }
 
                     p.init_imaging_channels=function(element){
@@ -1693,7 +1687,7 @@
 
                                         // initialise to some arbitrary default
                                         let channel_config={
-                                            lightsource:this.light_sources[0],
+                                            lightsource:this.light_sources[0].handle,
                                             exposure_time:10,
                                             light_power:100,
                                             analog_gain:0,
@@ -1716,7 +1710,7 @@
                                     }
                                     p.set_channel_config=function(element,channel_config){
                                         let lightsource_dropdown_element=element.querySelector(".imaging-channel-lightsource")
-                                        lightsource_dropdown_element.value=channel_config.lightsource.handle
+                                        lightsource_dropdown_element.value=channel_config.lightsource
                                         this.set_lightsource({currentTarget:lightsource_dropdown_element,target:lightsource_dropdown_element})
 
                                         element.querySelector(".imaging-channel-exposure-time").value=channel_config.exposure_time
@@ -1776,7 +1770,7 @@
                                         let lightsource_handle=element.value
 
                                         let lightsource=p.get_lightsource(lightsource_handle)
-                                        p.config.imaging_channels[channel_index].lightsource=lightsource
+                                        p.config.imaging_channels[channel_index].lightsource=lightsource.handle
                                     }
                                 </script>
 
