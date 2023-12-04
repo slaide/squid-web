@@ -1527,16 +1527,18 @@
                         let channel_config_item_clone=channel_config_item.cloneNode(true)
 
                         let imaging_channel_name_element=channel_config_item_clone.querySelector(".imaging-channel-name")
-                        if(imaging_channel_name_element.value.length>0){
-                            imaging_channel_name_element.value+=" (copy)"
-                        }
                         // insert copy immediately after original
                         channel_config_item.parentNode.insertBefore(channel_config_item_clone,channel_config_item.nextSibling)
 
                         // add channel item to list
                         let channel_index=parseInt(channel_config_item.getAttribute("channel-index"))
-                        let channel_config=this.config.imaging_channels[channel_index]
-                        this.config.imaging_channels.splice(channel_index+1,0,channel_config.copyRaw())
+                        let new_channel_config=this.config.imaging_channels[channel_index].copyRaw()
+                        if(new_channel_config.name.length>0){
+                            new_channel_config.name+=" (copy)"
+                        }
+                        this.config.imaging_channels.splice(channel_index+1,0,new_channel_config)
+
+                        this.set_channel_config(channel_config_item_clone,new_channel_config)
                     }
                     p.investigate_channel=function(event){
                         event.currentTarget.parentElement.classList.toggle("active")
