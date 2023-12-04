@@ -1521,24 +1521,50 @@
                         // remove channel item from list
                         let channel_index=parseInt(channel_config_item.getAttribute("channel-index"))
                         this.config.imaging_channels.splice(channel_index,1)
+
+                        // adjust channel index for all following channel items
+                        for(let i=channel_index;i<this.config.imaging_channels.length;i++){
+                            let channel_config_item=document.querySelector(`[channel-index="${i+1}"]`)
+                            if(!channel_config_item){
+                                break
+                            }
+                            channel_config_item.setAttribute("channel-index",i)
+                        }
                     }
                     p.duplicate_channel=function(event){
                         let channel_config_item=event.currentTarget.parentNode
                         let channel_config_item_clone=channel_config_item.cloneNode(true)
+                        channel_config_item_clone.removeAttribute("init-from-existing-channel-index")
 
-                        let imaging_channel_name_element=channel_config_item_clone.querySelector(".imaging-channel-name")
-                        // insert copy immediately after original
-                        channel_config_item.parentNode.insertBefore(channel_config_item_clone,channel_config_item.nextSibling)
+                        let channel_index=parseInt(channel_config_item.getAttribute("channel-index"))
 
                         // add channel item to list
-                        let channel_index=parseInt(channel_config_item.getAttribute("channel-index"))
                         let new_channel_config=this.config.imaging_channels[channel_index].copyRaw()
+                        // small name adjustment
                         if(new_channel_config.name.length>0){
                             new_channel_config.name+=" (copy)"
                         }
                         this.config.imaging_channels.splice(channel_index+1,0,new_channel_config)
 
+                        // increase index of all following channel items
+                        let next_sibling=channel_config_item.nextSibling
+                        while(next_sibling){
+                            if(next_sibling==document.querySelector("#channel-config-add-item-button")){
+                                break
+                            }
+                            let next_channel_index=parseInt(next_sibling.getAttribute("channel-index"))
+                            next_sibling.setAttribute("channel-index",next_channel_index+1)
+                            next_sibling=next_sibling.nextSibling
+                        }
+
+                        // adjust index of copy
+                        channel_config_item_clone.setAttribute("channel-index",channel_index+1)
+                        // insert copy immediately after original
+                        channel_config_item.parentNode.insertBefore(channel_config_item_clone,channel_config_item.nextSibling)
+
+                        // apply changed config to copy
                         this.set_channel_config(channel_config_item_clone,new_channel_config)
+                        channel_config_item_clone.setAttribute("init-from-existing-channel-index",channel_index+1)
                     }
                     p.investigate_channel=function(event){
                         event.currentTarget.parentElement.classList.toggle("active")
