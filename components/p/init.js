@@ -445,7 +445,11 @@ let p={
                         
                         let event_func_name_list=attribute.value.split(",")
                         
-                        for(let event_name of event_name_list.split(",")){
+                        let truncated_event_name_list=event_name_list.split("(")[0].split(",")
+                        for(let event_name of truncated_event_name_list){
+                            /// this is a hack (really only should apply to p:on-[objchange|attrchange](...), in which case the event name list only has a single entry anyway )
+                            let extended_event_name=(truncated_event_name_list.length!=1)?null:event_name_list
+
                             for(let event_func_name of event_func_name_list){
                                 if(event_func_name.length==0){
                                     continue
@@ -473,7 +477,7 @@ let p={
                                     element._p.vis_change_funcs.push(p[event_func_name])
                                     p.observer_delta_vis.observe(element)
                                 }else if(event_name.startsWith("attrchange")){
-                                    let attribute_list=event_name.replace("attrchange(","").replace(")","").split(",")
+                                    let attribute_list=extended_event_name.replace("attrchange(","").replace(")","").split(",")
                                     let attribute_change_observer=new MutationObserver(function(mutationsList, observer){
                                         mutationsList.forEach(mutation=>{
                                             if(mutation.type==="attributes"){
@@ -485,13 +489,9 @@ let p={
                                     })
                                     attribute_change_observer.observe(element,{attributes:true})
                                 }else if(event_name.startsWith("objchange")){
-                                    if(!event_name.startsWith("objchange(") || !event_name.endsWith(")")){
-                                        console.error("objchange event name malformed: "+event_name+" (must be of the form 'objchange(obj1&obj2&...)' - notably: do NOT use commas! the browser will truncate the attribute name after the first comma!")
-                                    }
+                                    let obj_list_string=extended_event_name.replace("objchange(","").replace(")","")
+                                    let obj_list=obj_list_string.split(",")
 
-                                    let obj_list_string=event_name.replace("objchange(","").replace(")","")
-                                    // separator must not be comma! (the property names is cut off at the first comma by the browser)
-                                    let obj_list=obj_list_string.split("&")
                                     for(let obj_name of obj_list){
                                         // obj_name can be any identifier, e.g. p or p.mynewdate or p.mynewdate.value
 

@@ -8,6 +8,7 @@
                 border:0;
                 padding:0;
                 font-family:Arial;
+                background-color:inherit;
             }
             body{
                 --inactive-color:white;
@@ -17,7 +18,22 @@
             input,select{
                 width:auto;
                 height:1.5em;
-                border-bottom:1px solid grey;
+
+                --border-bottom: grey;
+                border-bottom:1px solid var(--border-bottom);
+            }
+            input[type="text"]:not(.invalid){
+                margin:0.2em;
+                margin-bottom:calc( 0.2em - 1px );
+                --border-bottom: black;
+                border-bottom:1px solid var(--border-bottom);
+            }
+            input[type="text"].invalid{
+                border:0.2em solid red;
+                border-radius:0.3em;
+
+                --background-color:rgb(255, 210, 210);
+                background-color:var(--background-color);
             }
             label,button,select{
                 user-select: none;
@@ -25,19 +41,21 @@
             select,button,input{
                 cursor:pointer;
             }
-            input[type=text],input[type=number]{
+            input[type="text"],input[type="number"]{
                 cursor:text;
             }
             button{
-                background-color:var(--idle-color);
-                border:1px solid black;
+                --text-color:black;
+                color:var(--text-color);
+                --border-color:black;
+                border:1px solid var(--border-color);
                 border-radius:0.5em;
                 padding:0.2em;
                 padding-left:0.5em;
                 padding-right:0.5em;
             }
             button:hover{
-                background-color:rgb(175, 175, 175);
+                --background-color:rgb(175, 175, 175);
             }
             img{
                 image-rendering: pixelated;
@@ -91,9 +109,13 @@
 
         <!-- main content -->
         <style>
-            #main-content{
+            body{
                 width:100vw;
                 height:100vh;
+            }
+            #main-content{
+                width:100%;
+                height:100%;
                 overflow: hidden;
             }
         </style>
@@ -358,16 +380,6 @@
 
                     height:50%;
                     width:40%;
-                }
-                input[type="text"]:not(.invalid){
-                    margin:0.2em;
-                    margin-bottom:calc( 0.2em - 1px );
-                    border-bottom:1px solid black;
-                }
-                input[type="text"].invalid{
-                    border:0.2em solid red;
-                    border-radius:0.3em;
-                    background-color:rgb(255, 210, 210);
                 }
                 #basic-config-load-settings-button{
                     grid-column: span 2;
@@ -1433,7 +1445,7 @@
                                 this.config.grid.mask[grid_row][grid_col]=!this.config.grid.mask[grid_row][grid_col]
                             }
                         </script>
-                        <div id="grid-mask-selection-container" class="data" p:init-vis="adjust_children" p:on-objchange(p.config.grid.num_x&p.config.grid.num_y)="adjust_children">
+                        <div id="grid-mask-selection-container" class="data" p:init-vis="adjust_children" p:on-objchange(p.config.grid.num_x,p.config.grid.num_y)="adjust_children">
                             <template name="grid_mask_selection_item">
                                 <div class="grid-mask-selection-item data" p:on-click="grid_mask_item_toggle"></div>
                             </template>
@@ -1455,7 +1467,7 @@
                 #channel-container{
                     display:grid;
                     grid-template-columns: 1fr;
-                    grid-template-rows: repeat(100,min-content);
+                    grid-template-rows: repeat(999,min-content);
 
                     overflow-y: auto;
                     overflow-x: auto;
@@ -1469,41 +1481,66 @@
                         let channel_config_item=channel_config_item_template.cloneNode(true).children[0]
                         if(event.init_from_existing_channel_index!=null){
                             channel_config_item.setAttribute("init-from-existing-channel-index",event.init_from_existing_channel_index)
-                            console.log("init from existing channel",event.init_from_existing_channel_index)
                         }
 
                         let channel_container=document.querySelector("#channel-container")
                         channel_container.insertBefore(channel_config_item,channel_container.children[channel_container.children.length-1])
                     }
 
+                    p.swap_channel_items=function(el1,el2){
+                        let current_channel_index=parseInt(el1.getAttribute("channel-index"))
+                        let prev_channel_index=parseInt(el2.getAttribute("channel-index"))
+
+                        let current_channel_config=this.config.imaging_channels[current_channel_index]
+                        let prev_channel_config=this.config.imaging_channels[prev_channel_index]
+
+                        this.config.imaging_channels[current_channel_index]=prev_channel_config
+                        this.config.imaging_channels[prev_channel_index]=current_channel_config
+
+                        this.set_channel_config(el1,prev_channel_config)
+                        this.set_channel_config(el2,current_channel_config)
+                    }
                     p.channel_move_up=function(event){
                         let channel_config_item=event.currentTarget.parentNode
-                        let channel_config_item_prev=channel_config_item.previousSibling
+                        let channel_config_item_prev=channel_config_item.previousElementSibling
                         if(channel_config_item_prev){
-                            channel_config_item.parentNode.insertBefore(channel_config_item,channel_config_item_prev)
+                            this.swap_channel_items(channel_config_item,channel_config_item_prev)
                         }
                     }
                     p.channel_move_down=function(event){
                         let channel_config_item=event.currentTarget.parentNode
-                        let channel_config_item_next=channel_config_item.nextSibling
+                        let channel_config_item_next=channel_config_item.nextElementSibling
                         if(channel_config_item_next && channel_config_item_next!=document.querySelector("#channel-config-add-item-button")){
-                            channel_config_item.parentNode.insertBefore(channel_config_item_next,channel_config_item)
+                            this.swap_channel_items(channel_config_item,channel_config_item_next)
                         }
                     }
                     p.remove_channel=function(event){
                         let channel_config_item=event.currentTarget.parentNode
                         channel_config_item.parentNode.removeChild(channel_config_item)
+
+                        // remove channel item from list
+                        let channel_index=parseInt(channel_config_item.getAttribute("channel-index"))
+                        this.config.imaging_channels.splice(channel_index,1)
                     }
                     p.duplicate_channel=function(event){
                         let channel_config_item=event.currentTarget.parentNode
                         let channel_config_item_clone=channel_config_item.cloneNode(true)
-                        if(channel_config_item_clone.children[0].value.length>0){
-                            channel_config_item_clone.children[0].value+=" (copy)"
+
+                        let imaging_channel_name_element=channel_config_item_clone.querySelector(".imaging-channel-name")
+                        if(imaging_channel_name_element.value.length>0){
+                            imaging_channel_name_element.value+=" (copy)"
                         }
                         // insert copy immediately after original
                         channel_config_item.parentNode.insertBefore(channel_config_item_clone,channel_config_item.nextSibling)
+
+                        // add channel item to list
+                        let channel_index=parseInt(channel_config_item.getAttribute("channel-index"))
+                        let channel_config=this.config.imaging_channels[channel_index]
+                        this.config.imaging_channels.splice(channel_index+1,0,channel_config.copyRaw())
                     }
                     p.investigate_channel=function(event){
+                        event.currentTarget.parentElement.classList.toggle("active")
+
                         let channel_config_item=event.currentTarget.parentNode
                         let channel_name=channel_config_item.children[0].value
                         let lightsource=channel_config_item.children[3].value
@@ -1527,34 +1564,75 @@
                     }
                 </script>
                 <style>
-                    #channel-container{
-                        padding-left:0.3em;
-                        padding-right:0.3em;
-
+                    #imaging-channel-container{
                         margin-right:1em;
                         border-right:1px solid black;
+
+                        height:100%;
+                        display:grid;
+                        grid-template-columns: 1fr;
+                        grid-template-rows: min-content 1fr;
+
+                        padding-left:0.3em;
+                        padding-right:0.3em;
+                    }
+                    #imaging-channel-list-header{
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 1.2em;
+                        text-transform: uppercase;
+
+                        padding-bottom:0.2em;
+                        padding-top:0.2em;
+                        margin-bottom:0.4em;
+
+                        border-bottom:1px solid lightgray;
+                    }
+                    .channel-config-item.active,.channel-config-item.active>button:not(:hover){
+                        --text-color:white;
+                        --border-color:white;
+                        --background-color: black;
+                    }
+                    .channel-config-item:not(.active){
+                        --text-color:black;
+                        --border-color:white;
+                        --background-color: rgb(233, 233, 233);
+                    }
+                    .channel-config-item input,.channel-config-item select,.channel-config-item input[type="text"],.channel-config-item button{
+                        --border-bottom:var(--text-color);
+                        color:var(--text-color);
+                        background-color: var(--background-color);
                     }
                     .channel-config-item{
                         display:grid;
                         grid-template-columns: auto auto auto auto;
                         grid-template-rows: repeat(6,min-content);
 
-                        border-bottom: 1px solid black;
-                        padding-bottom: 0.5em;
-                        margin-bottom: 0.2em;
+                        margin-bottom: 0.4em;
 
-                        column-gap: 1em;
+                        column-gap: 0.4em;
                         row-gap:0.2em;
+
+                        color:var(--text-color);
+                        background-color: var(--background-color);
                     }
-                    .channel-config-item-name{
-                        font-size: 1.5em;
+                    .imaging-channel-name-container{
+                        font-size: 1.3em;
+                        display:grid;
+                        grid-template-columns: auto 1fr;
+                    }
+                    .imaging-channel-name-container label{
+                        margin-top: 0.4em;
+                    }
+                    .imaging-channel-name{
+                        font-size: 1em;
                         font-weight: bold;
                     }
                     #channel-config-add-item-button{
                         font-size:1.3em;
                         padding:0.5em;
                         margin:0.2em;
-                        margin-top: 1em;
+                        margin-top: 0.2em;
                         border:1px solid black;
                     }
                     .col-4{
@@ -1568,161 +1646,181 @@
                     }
                     .channel-config-item>button{
                         padding:0.5em;
-                        border:1px solid black;
                     }
                     .input-unit-container{
                         display:grid;
                         grid-template-columns:1fr auto;
                     }
                 </style>
-                <div id="channel-container" class="data" p:init="init_imaging_channels" p:init-vis="load_imaging_channels">
-                    <template name="channel_config_item">
-                        <div class="channel-config-item data" p:init-vis="init_channel">
-                            <script>
-                                p.init_channel=function(element){
-                                    let init_from_existing_channel_index=element.getAttribute("init-from-existing-channel-index")
+                <div id="imaging-channel-container">
+                    <div id="imaging-channel-list-header">imaging channels</div>
+                    <div id="channel-container" class="data" p:init="init_imaging_channels" p:init-vis="load_imaging_channels">
+                        <template name="channel_config_item">
+                            <div class="channel-config-item data" p:init-vis="init_channel">
+                                <script>
+                                    p.init_channel=function(element){
+                                        let init_from_existing_channel_index=element.getAttribute("init-from-existing-channel-index")
 
-                                    let channel_index=this.config.imaging_channels.length
+                                        let channel_index=this.config.imaging_channels.length
 
-                                    // initialise to some arbitrary defult
-                                    let channel_config={
-                                        lightsource:this.light_sources[0],
-                                        exposure_time:10,
-                                        light_power:100,
-                                        analog_gain:0,
-                                        z_offset:0
-                                    }
-
-                                    if(init_from_existing_channel_index!==null){
-                                        channel_index=init_from_existing_channel_index
-
-                                        let existing_channel_config=this.config.imaging_channels[init_from_existing_channel_index]
-                                        channel_config={
-                                            lightsource:existing_channel_config.lightsource,
-                                            exposure_time:existing_channel_config.exposure_time,
-                                            light_power:existing_channel_config.light_power,
-                                            analog_gain:existing_channel_config.analog_gain,
-                                            z_offset:existing_channel_config.z_offset
+                                        // initialise to some arbitrary default
+                                        let channel_config={
+                                            lightsource:this.light_sources[0],
+                                            exposure_time:10,
+                                            light_power:100,
+                                            analog_gain:0,
+                                            z_offset:0,
+                                            name:""
                                         }
-                                    }else{
-                                        this.config.imaging_channels.push(channel_config)
+
+                                        if(init_from_existing_channel_index!==null){
+                                            channel_index=init_from_existing_channel_index
+
+                                            let existing_channel_config=this.config.imaging_channels[init_from_existing_channel_index]
+                                            channel_config=existing_channel_config
+                                        }else{
+                                            this.config.imaging_channels.push(channel_config)
+                                        }
+
+                                        element.setAttribute("channel-index",channel_index)
+
+                                        this.set_channel_config(element,channel_config)
+                                    }
+                                    p.set_channel_config=function(element,channel_config){
+                                        let lightsource_dropdown_element=element.querySelector(".imaging-channel-lightsource")
+                                        lightsource_dropdown_element.value=channel_config.lightsource.handle
+                                        this.set_lightsource({currentTarget:lightsource_dropdown_element,target:lightsource_dropdown_element})
+
+                                        element.querySelector(".imaging-channel-exposure-time").value=channel_config.exposure_time
+                                        element.querySelector(".imaging-channel-light-power").value=channel_config.light_power
+                                        element.querySelector(".imaging-channel-analog-gain").value=channel_config.analog_gain
+                                        element.querySelector(".imaging-channel-z-offset").value=channel_config.z_offset
+
+                                        let imaging_channel_name_element=element.querySelector(".imaging-channel-name")
+                                        imaging_channel_name_element.value=channel_config.name
+                                        this.validate_channel_name({currentTarget:imaging_channel_name_element,target:imaging_channel_name_element})
+                                    }
+                                    p.validate_channel_name=function(event){
+                                        /// returns true if valid, false otherwise
+
+                                        let element=event.currentTarget || event
+
+                                        if(element.value.length==0){
+                                            element.classList.add("invalid")
+                                            element.setCustomValidity("Channel name must not be empty.")
+                                            element.reportValidity()
+                                        }else{
+                                            element.classList.remove("invalid")
+                                            element.setCustomValidity("")
+
+                                            return true
+                                        }
+
+                                        return false
                                     }
 
-                                    element.setAttribute("channel-index",channel_index)
+                                    p.set_channel_name=function(event){
+                                        let element=event.currentTarget || event
 
-                                    let lightsource_dropdown_element=element.querySelector(".imaging-channel-lightsource")
-                                    lightsource_dropdown_element.value=channel_config.lightsource.handle
-                                    this.set_lightsource({currentTarget:lightsource_dropdown_element,target:lightsource_dropdown_element})
+                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                        let channel_name=element.value
 
-                                    element.querySelector(".imaging-channel-exposure-time").value=channel_config.exposure_time
-                                    element.querySelector(".imaging-channel-light-power").value=channel_config.light_power
-                                    element.querySelector(".imaging-channel-analog-gain").value=channel_config.analog_gain
-                                    element.querySelector(".imaging-channel-z-offset").value=channel_config.z_offset
-                                }
-                                p.validate_channel_name=function(event){
-                                    element=event.currentTarget
-                                    if(!element){
-                                        element=event
+                                        p.config.imaging_channels[channel_index].name=channel_name
                                     }
-                                    if(element.value.length==0){
-                                        element.classList.add("invalid")
-                                        element.setCustomValidity("Channel name must not be empty.")
-                                        element.reportValidity()
-                                    }else{
-                                        element.classList.remove("invalid")
-                                        element.setCustomValidity("")
+                                </script>
+                                <div class="col-3 imaging-channel-name-container">
+                                    <label class="data" p:tooltip="Name of this channel (used for metadata only). This should be the name of dye. Use the name of the organelle only if there is no dye in this channel.">Name:</label>
+                                    <input class="imaging-channel-name data" type="text" p:init-vis="validate_channel_name" p:on-input="validate_channel_name,set_channel_name" placeholder="Enter Channel Name"/>
+                                </div>
+
+                                <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
+
+                                <label>Light source:</label>
+                                <select class="imaging-channel-lightsource col-3 data" p:init="init_lightsource_dropdown" p:on-change="set_lightsource"></select>
+                                <script>
+                                    p.init_lightsource_dropdown=function(element){
+                                        this.create_dropdown(element,this.light_sources)
                                     }
-                                }
-                            </script>
-                            <input class="col-3 channel-config-item-name data" p:tooltip="Name of this channel (used for metadata only). This should be the name of dye. Use the name of the organelle only if there is no dye in this channel." type="text" p:init-vis="validate_channel_name" p:on-input="validate_channel_name" placeholder="Enter Channel Name"/>
+                                    p.set_lightsource=function(event){
+                                        let element=event.currentTarget || event
 
-                            <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
+                                        let channel_index=element.parentNode.getAttribute("channel-index")
+                                        let lightsource_handle=element.value
 
-                            <label>Light source:</label>
-                            <select class="imaging-channel-lightsource col-3 data" p:init="init_lightsource_dropdown" p:on-change="set_lightsource"></select>
-                            <script>
-                                p.init_lightsource_dropdown=function(element){
-                                    this.create_dropdown(element,this.light_sources)
-                                }
-                                p.set_lightsource=function(event){
-                                    let element=event.currentTarget || event
+                                        let lightsource=p.get_lightsource(lightsource_handle)
+                                        p.config.imaging_channels[channel_index].lightsource=lightsource
+                                    }
+                                </script>
 
-                                    let channel_index=element.parentNode.getAttribute("channel-index")
-                                    let lightsource_handle=element.value
+                                <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
+                                <div class="input-unit-container">
+                                    <input class="imaging-channel-exposure-time data" type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false" p:on-change="set_exposure_time"/>
+                                    <p>ms</p>
+                                </div>
+                                <script>
+                                    p.set_exposure_time=function(event){
+                                        let element=event.currentTarget || event
 
-                                    let lightsource=p.get_lightsource(lightsource_handle)
-                                    p.config.imaging_channels[channel_index].lightsource=lightsource
-                                }
-                            </script>
+                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                        let exposure_time=element.value
 
-                            <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
-                            <div class="input-unit-container">
-                                <input class="imaging-channel-exposure-time data" type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false" p:on-change="set_exposure_time"/>
-                                <p>ms</p>
+                                        p.config.imaging_channels[channel_index].exposure_time=exposure_time
+                                    }
+                                </script>
+
+                                <label class="data" p:tooltip="Fraction of the maximum power of the light source with which it illuminates the sample. Must be in range [0;100%]">Light Power:</label>
+                                <div class="input-unit-container">
+                                    <input class="imaging-channel-light-power data" type="number" min="0" max="100" step="0.1" wheel-adjust="false" p:on-change="set_light_power"/>
+                                    <p>%</p>
+                                </div>
+                                <script>
+                                    p.set_light_power=function(event){
+                                        let element=event.currentTarget || event
+
+                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                        let light_power=element.value
+
+                                        p.config.imaging_channels[channel_index].light_power=light_power
+                                    }
+                                </script>
+
+                                <label class="data" p:tooltip="Analog gain increases the camera sensor sensitivity. This makes a weaker signal appear stronger, but may increase the level of noise in the image.">Analog Gain:</label>
+                                <input class="imaging-channel-analog-gain data" type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false" p:on-change="set_analog_gain"/>
+                                <script>
+                                    p.set_analog_gain=function(event){
+                                        let element=event.currentTarget || event
+
+                                        let channel_index=element.parentNode.getAttribute("channel-index")
+                                        let analog_gain=element.value
+
+                                        p.config.imaging_channels[channel_index].analog_gain=analog_gain
+                                    }
+                                </script>
+
+                                <label class="data" p:tooltip="The z-offset of the imaging plane of this channel from the focus plane of the current position.">Z-Offset:</label>
+                                <div class="input-unit-container">
+                                    <input class="imaging-channel-z-offset data" type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false" p:on-change="set_z_offset"/>
+                                    <p>um</p>
+                                </div>
+                                <script>
+                                    p.set_z_offset=function(event){
+                                        let element=event.currentTarget || event
+
+                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                                        let z_offset=element.value
+
+                                        p.config.imaging_channels[channel_index].z_offset=z_offset
+                                    }
+                                </script>
+
+                                <button class="data" p:tooltip="Move this channel up in the imaging order." p:on-click="channel_move_up">Move Up</button>
+                                <button class="data" p:tooltip="Move this channel down in the imaging order."  p:on-click="channel_move_down">Move Down</button>
+                                <button class="data" p:tooltip="Create a copy of this channel."  p:on-click="duplicate_channel">Duplicate</button>
+                                <button class="data" p:tooltip="Delete this channel."  p:on-click="remove_channel">Remove</button>
                             </div>
-                            <script>
-                                p.set_exposure_time=function(event){
-                                    let element=event.currentTarget || event
-
-                                    let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                    let exposure_time=element.value
-
-                                    p.config.imaging_channels[channel_index].exposure_time=exposure_time
-                                }
-                            </script>
-
-                            <label class="data" p:tooltip="Fraction of the maximum power of the light source with which it illuminates the sample. Must be in range [0;100%]">Light Power:</label>
-                            <div class="input-unit-container">
-                                <input class="imaging-channel-light-power data" type="number" min="0" max="100" step="0.1" wheel-adjust="false" p:on-change="set_light_power"/>
-                                <p>%</p>
-                            </div>
-                            <script>
-                                p.set_light_power=function(event){
-                                    let element=event.currentTarget || event
-
-                                    let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                    let light_power=element.value
-
-                                    p.config.imaging_channels[channel_index].light_power=light_power
-                                }
-                            </script>
-
-                            <label class="data" p:tooltip="Analog gain increases the camera sensor sensitivity. This makes a weaker signal appear stronger, but may increase the level of noise in the image.">Analog Gain:</label>
-                            <input class="imaging-channel-analog-gain data" type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false" p:on-change="set_analog_gain"/>
-                            <script>
-                                p.set_analog_gain=function(event){
-                                    let element=event.currentTarget || event
-
-                                    let channel_index=element.parentNode.getAttribute("channel-index")
-                                    let analog_gain=element.value
-
-                                    p.config.imaging_channels[channel_index].analog_gain=analog_gain
-                                }
-                            </script>
-
-                            <label class="data" p:tooltip="The z-offset of the imaging plane of this channel from the focus plane of the current position.">Z-Offset:</label>
-                            <div class="input-unit-container">
-                                <input class="imaging-channel-z-offset data" type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false" p:on-change="set_z_offset"/>
-                                <p>um</p>
-                            </div>
-                            <script>
-                                p.set_z_offset=function(event){
-                                    let element=event.currentTarget || event
-
-                                    let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                    let z_offset=element.value
-
-                                    p.config.imaging_channels[channel_index].z_offset=z_offset
-                                }
-                            </script>
-
-                            <button class="data" p:tooltip="Move this channel up in the imaging order." p:on-click="channel_move_up">Move Up</button>
-                            <button class="data" p:tooltip="Move this channel down in the imaging order."  p:on-click="channel_move_down">Move Down</button>
-                            <button class="data" p:tooltip="Create a copy of this channel."  p:on-click="duplicate_channel">Duplicate</button>
-                            <button class="data" p:tooltip="Delete this channel."  p:on-click="remove_channel">Remove</button>
-                        </div>
-                    </template>
-                    <button id="channel-config-add-item-button" class="data" p:on-click="add_channel_config_item">Add Channel</button>
+                        </template>
+                        <button id="channel-config-add-item-button" class="data" p:on-click="add_channel_config_item">Add Channel</button>
+                    </div>
                 </div>
 
                 <!-- right side (channel investigation) -->
@@ -1745,7 +1843,7 @@
                         }
                     </style>
                     <div id="objective-position-container">
-                        <div style="grid-column: span 4;">Objective/Stage Position:</div>
+                        <h2 style="grid-column: span 4;">Objective/Stage Position:</h2>
 
                         <div>
                             <div>current position:</div>
@@ -2085,7 +2183,7 @@
 
                     <div class="config-accepted"></div>
                     <div>num wells selected:</div>
-                    <div class="data" p:init-vis="review_set_wells_selected" p:on-objchange(p.config.well_selection&p.well_selection_init.done)="review_set_wells_selected" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]"></div>
+                    <div class="data" p:init-vis="review_set_wells_selected" p:on-objchange(p.config.well_selection,p.well_selection_init.done)="review_set_wells_selected" p:tooltip="selected wells: A1, A2, A3, ... [TODO: exhaustive list goes here, nicely formatted]"></div>
 
                     <div class="config-accepted"></div>
                     <div>Positions per well:</div>
