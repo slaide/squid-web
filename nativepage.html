@@ -1993,9 +1993,71 @@
                                 </select>
 
                                 <script>
+                                    let histogram_was_initialized=false
+                                    let y_axis_log_scale=true
+                                    p.histogram_from_image=function(image){
+                                        // histogram is created on the R (red) channel only
+                                        
+                                        var y_data = []
+                                        var x_data = []
+                                        for(let i=0;i<256;i++){
+                                            y_data.push(0)
+                                            x_data.push(i)
+                                        }
+
+                                        let num_pixels_in_image=image.width*image.height
+                                        let num_image_color_channels=image.data.length/num_pixels_in_image
+
+                                        for(let i=0;i<image.data.length;i+=num_image_color_channels){
+                                            y_data[image.data[i]]++
+                                        }
+
+                                        if(y_data[0]==num_pixels_in_image){
+                                            throw new Error("image is empty, cannot create histogram")
+                                        }
+
+                                        var trace = {
+                                            x: x_data,
+                                            y: y_data,
+                                            fill: 'tozeroy',
+                                            type: 'scatter',
+                                            mode: 'lines'
+                                        }
+                                        var layout = {
+                                            title: 'Histogram',
+                                            xaxis: {
+                                                title: 'Signal intensity',
+                                                tickvals: [  0,    64, 128,    192,255],
+                                                ticktext: ['0','0.25','0.5','0.75','1'],
+                                            },
+                                            yaxis: {
+                                                title: 'Relative count',
+                                                // only provide ticks for 0 (numbers on this axis are largely irrelevant)
+                                                tickvals: [0],
+                                                ticktext: ['0']
+                                            },
+                                            autosize: true,
+                                            // reduce margin size to reduce blank space around plot
+                                            margin: {l: 40, r: 40, b: 40, t: 40}
+                                        }
+
+                                        if(y_axis_log_scale){
+                                            layout.yaxis.type="log"
+                                            layout.yaxis.title+=" (log scale)"
+
+                                            layout.yaxis.tickvals.push(1)
+                                            layout.yaxis.ticktext.push('1')
+                                        }
+
+                                        let config={scrollZoom: true}
+
+                                        Plotly.newPlot('histogram', [trace], layout, config)
+                                        histogram_was_initialized=true
+                                    }
+
                                     p.plotly_resize=function(element){
                                         // if plot is not yet present, do nothing
-                                        if("style script".indexOf(element.lastElementChild.tagName.toLowerCase())>-1){
+                                        if(!histogram_was_initialized){
                                             return
                                         }
                                         
@@ -2014,67 +2076,6 @@
                                             height:400px;
                                         }
                                     </style>
-                                    <script>
-                                        let y_axis_log_scale=true
-                                        p.histogram_from_image=function(image){
-                                            // histogram is created on the R (red) channel only
-                                            
-                                            var y_data = []
-                                            var x_data = []
-                                            for(let i=0;i<256;i++){
-                                                y_data.push(0)
-                                                x_data.push(i)
-                                            }
-
-                                            let num_pixels_in_image=image.width*image.height
-                                            let num_image_color_channels=image.data.length/num_pixels_in_image
-
-                                            for(let i=0;i<image.data.length;i+=num_image_color_channels){
-                                                y_data[image.data[i]]++
-                                            }
-
-                                            if(y_data[0]==num_pixels_in_image){
-                                                throw new Error("image is empty, cannot create histogram")
-                                            }
-
-                                            var trace = {
-                                                x: x_data,
-                                                y: y_data,
-                                                fill: 'tozeroy',
-                                                type: 'scatter',
-                                                mode: 'lines'
-                                            }
-                                            var layout = {
-                                                title: 'Histogram',
-                                                xaxis: {
-                                                    title: 'Signal intensity',
-                                                    tickvals: [  0,    64, 128,    192,255],
-                                                    ticktext: ['0','0.25','0.5','0.75','1'],
-                                                },
-                                                yaxis: {
-                                                    title: 'Relative count',
-                                                    // only provide ticks for 0 (numbers on this axis are largely irrelevant)
-                                                    tickvals: [0],
-                                                    ticktext: ['0']
-                                                },
-                                                autosize: true,
-                                                // reduce margin size to reduce blank space around plot
-                                                margin: {l: 40, r: 40, b: 40, t: 40}
-                                            }
-
-                                            if(y_axis_log_scale){
-                                                layout.yaxis.type="log"
-                                                layout.yaxis.title+=" (log scale)"
-
-                                                layout.yaxis.tickvals.push(1)
-                                                layout.yaxis.ticktext.push('1')
-                                            }
-
-                                            let config={scrollZoom: true}
-
-                                            Plotly.newPlot('histogram', [trace], layout, config)
-                                        }
-                                    </script>
                                 </div>
                             </div>
                         </div>
