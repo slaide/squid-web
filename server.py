@@ -101,6 +101,15 @@ def get_file(filename):
         highlight_saturated_pixels='.saturated' in filename
         filename = filename.replace('.saturated','')
 
+        brightness_factor=1.0
+        filename_segments=filename.split('.')
+        for segment in filename_segments:
+            if segment.startswith('b') and len(segment)==len('b1_0'):
+                brightness_factor=float(segment[1:].replace('_','.'))
+                filename=filename.replace(f".{segment}",'')
+
+                break
+
         downsample_factor=5
 
         image_as_highres='.highres' in filename
@@ -136,23 +145,27 @@ def get_file(filename):
             # convert to 8-bit
             image = np.array(image)
             image >>= 8
-            image = image.astype(np.uint8)
 
             # downsample
-            image=image[::downsample_factor,::downsample_factor]
+            image=image[::downsample_factor,::downsample_factor]*np.array(brightness_factor)
+
+            U8_MAX=255
+
+            image=image.clip(max=U8_MAX)
+            image = image.astype(np.uint8)
             
             if highlight_saturated_pixels:
 
                 # find saturated pixels
-                image_saturation_mask=image>250
+                image_saturation_mask=image==U8_MAX
 
                 # convert from monochrome to rgba by just repeating the same value 4 times
                 image = np.expand_dims(image, axis=-1)
                 image = np.repeat(image, 4, axis=-1)
-                image[...,-1] = 255
+                image[...,-1] = U8_MAX
 
                 # turn saturated pixels red
-                image[image_saturation_mask]=[255,0,0,255]
+                image[image_saturation_mask]=[U8_MAX,0,0,U8_MAX]
 
             # Convert the image to PIL format
             image = Image.fromarray(image)
