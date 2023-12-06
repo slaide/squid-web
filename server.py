@@ -102,6 +102,9 @@ def get_file(filename):
         filename = filename.replace('.saturated','')
 
         brightness_factor=1.0
+        # parse brightness factor from filename
+        # e.g. b1_0 -> 1.0, b1_5 -> 1.5, b0_5 -> 0.5
+        # range is {0.1,0.2,...,9.8,9.9}
         filename_segments=filename.split('.')
         for segment in filename_segments:
             if segment.startswith('b') and len(segment)==len('b1_0'):
@@ -160,7 +163,7 @@ def get_file(filename):
                 image_saturation_mask=image==U8_MAX
 
                 # convert from monochrome to rgba by just repeating the same value 4 times
-                image = np.expand_dims(image, axis=-1)
+                image = np.expand_dims(image, axis=-1) # append new axis
                 image = np.repeat(image, 4, axis=-1)
                 image[...,-1] = U8_MAX
 
