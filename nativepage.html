@@ -1895,84 +1895,72 @@
                         </div>
                     </div>
                     <div>
-                        <h2>Live View</h2>
-                        <script>
-                            p.onsrcchange=function(element){
-                                element.children[element.children.length-1].firstElementChild.setAttribute("src",element.getAttribute("src"))
-                                center_image_on_load(element.children[element.children.length-1].firstElementChild)
-                            }
-                        </script>
                         <style>
-                            #live-view-container{
+                            #live-view-section-header{
                                 display:grid;
-                                grid-template-columns: 2fr 1fr;
-                                grid-gap:1em;
+                                grid-template-columns: auto 1fr;
+                                column-gap: 1em;
+                            }
+                            #live-view-section-header :nth-child(2){
+                                margin-top:0.2em;
                             }
                         </style>
-                        <div id="live-view-container">
-                            <style>
-                                #live-view-display{
-                                    width:100%;
-                                    height:auto;
-                                    border:1px solid black;
-                                }
-                            </style>
-                            <div id="live-view-display" style="background-color:gray;" class="dynamic-image-display notitle data" p:on-attrchange(src)="onsrcchange"></div>
+                        <div id="live-view-section-header">
+                            <h2>Live View</h2>
+
                             <div>
-                                <div>
-                                    <h3>enhance brightness</h3>
-                                    <label>brightness</label><input id="live-view-brightness" class="data" type="number" min="0.1" max="9.9" value="1.0" step="0.1" p:on-change="load_new_image"/>
-                                </div>
-                                <div>
-                                    <label>indicate saturated pixels?</label>
-                                    <script>
-                                        let img_src=null
-                                        let saturated=false
-                                        let res_flag=null
+                                <label for="live-view-brightness">brightness</label>
+                                <input id="live-view-brightness" class="data" type="number" min="0.1" max="9.9" value="1.0" step="0.1" p:on-change="load_new_image"/>
 
-                                        let _icantbelieveihavetodothis={intervalid:0}
-                                        p.load_new_image=function(_){
-                                            let img_element=document.getElementById("live-view-display")
+                                <label>indicate saturated pixels?</label>
+                                <script>
+                                    let img_src=null
+                                    let saturated=false
+                                    let res_flag=null
 
-                                            let brightness_factor=parseFloat(document.getElementById("live-view-brightness").value)
+                                    let _icantbelieveihavetodothis={intervalid:0}
+                                    p.load_new_image=function(_){
+                                        let img_element=document.getElementById("live-view-display")
 
-                                            let new_img_src=img_src
-                                            if(saturated){
-                                                new_img_src=new_img_src.replace('.tif','.saturated.tif')
-                                            }
-                                            if(res_flag){
-                                                new_img_src=new_img_src.replace('.tif',res_flag+'.tif')
-                                            }
-                                            if(brightness_factor!=null){
-                                                new_img_src=new_img_src.replace('.tif','.b'+brightness_factor.toFixed(1).replace('.','_')+'.tif')
-                                            }
-                                            img_element.setAttribute("src",new_img_src)
-                                            
-                                            if(_icantbelieveihavetodothis.intervalid){
-                                                clearInterval(_icantbelieveihavetodothis.intervalid)
-                                            }
+                                        let brightness_factor=parseFloat(document.getElementById("live-view-brightness").value)
 
-                                            _icantbelieveihavetodothis.intervalid=setInterval(()=>{
-                                                try{
-                                                    p.make_into_histogram(img_element)
-                                                }catch(e){
-                                                    return
-                                                }
-
-                                                clearInterval(_icantbelieveihavetodothis.intervalid)
-                                            },50)
+                                        let new_img_src=img_src
+                                        if(saturated){
+                                            new_img_src=new_img_src.replace('.tif','.saturated.tif')
                                         }
-                                        p.make_into_histogram=function(element){
-                                            this.histogram_from_image(this.get_img_data(element.children[0].children[0]))
+                                        if(res_flag){
+                                            new_img_src=new_img_src.replace('.tif',res_flag+'.tif')
+                                        }
+                                        if(brightness_factor!=null){
+                                            new_img_src=new_img_src.replace('.tif','.b'+brightness_factor.toFixed(1).replace('.','_')+'.tif')
+                                        }
+                                        img_element.setAttribute("src",new_img_src)
+                                        
+                                        if(_icantbelieveihavetodothis.intervalid){
+                                            clearInterval(_icantbelieveihavetodothis.intervalid)
                                         }
 
-                                        p.change_saturated_pixel_indicator=function(event){
-                                            saturated=event.currentTarget.checked
-                                            this.load_new_image()
-                                        }
-                                    </script>
-                                    <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
-                                </div>
+                                        _icantbelieveihavetodothis.intervalid=setInterval(()=>{
+                                            try{
+                                                p.make_into_histogram(img_element)
+                                            }catch(e){
+                                                return
+                                            }
+
+                                            clearInterval(_icantbelieveihavetodothis.intervalid)
+                                        },50)
+                                    }
+                                    p.make_into_histogram=function(element){
+                                        this.histogram_from_image(this.get_img_data(element.children[0].children[0]))
+                                    }
+
+                                    p.change_saturated_pixel_indicator=function(event){
+                                        saturated=event.currentTarget.checked
+                                        this.load_new_image()
+                                    }
+                                </script>
+                                <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
+
                                 <script>
                                     p.set_img_src=function(event){
                                         let element=event.currentTarget||event
@@ -1999,7 +1987,31 @@
                                     <option value=".midres" selected>1/5 res</option>
                                     <option value=".lowres">1/10 res</option>
                                 </select>
-
+                            </div>
+                        </div>
+                        <style>
+                            #live-view-container{
+                                display:grid;
+                                grid-template-columns: 2fr 1fr;
+                                grid-gap:1em;
+                            }
+                        </style>
+                        <div id="live-view-container">
+                            <style>
+                                #live-view-display{
+                                    width:100%;
+                                    height:auto;
+                                    border:1px solid black;
+                                }
+                            </style>
+                            <script>
+                                p.onsrcchange=function(element){
+                                    element.children[element.children.length-1].firstElementChild.setAttribute("src",element.getAttribute("src"))
+                                    center_image_on_load(element.children[element.children.length-1].firstElementChild)
+                                }
+                            </script>
+                            <div id="live-view-display" style="background-color:gray;" class="dynamic-image-display notitle data" p:on-attrchange(src)="onsrcchange"></div>
+                            <div>
                                 <script>
                                     let histogram_was_initialized=false
                                     let y_axis_log_scale=true
