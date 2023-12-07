@@ -52,13 +52,17 @@
                 color:var(--text-color);
                 --border-color:black;
                 border:1px solid var(--border-color);
+                background-color:var(--background-color);
                 border-radius:0.5em;
                 padding:0.2em;
                 padding-left:0.5em;
                 padding-right:0.5em;
             }
+            button:not(:hover){
+                --background-color:white;
+            }
             button:hover{
-                --background-color:rgb(175, 175, 175);
+                --background-color:rgb(193, 193, 193);
             }
             img{
                 image-rendering: pixelated;
@@ -1460,7 +1464,7 @@
             <style>
                 #channel-focus-setup:not(.inactive){
                     display:grid;
-                    grid-template-columns: 1fr 2fr;
+                    grid-template-columns: 1fr 1fr 2fr;
                     height:100%;
                     overflow:hidden;
                 }
@@ -1479,6 +1483,8 @@
             <div class="tab-body data" tab-name="channel + focus setup" id="channel-focus-setup" p:on-vis-change="tab_to_url">
                 <!-- left side (channel overview) -->
                 <script>
+                    let channel_index=make_observable({index:null})
+
                     p.add_channel_config_item=function(event){
                         let channel_config_item_template=p.templates["channel_config_item"]
                         let channel_config_item=channel_config_item_template.cloneNode(true).children[0]
@@ -1491,8 +1497,16 @@
                     }
 
                     p.swap_channel_items=function(el1,el2){
+                        if(!el1 || !el2){
+                            return
+                        }
                         let current_channel_index=parseInt(el1.getAttribute("channel-index"))
                         let prev_channel_index=parseInt(el2.getAttribute("channel-index"))
+
+                        let last_channel_index_investigated=channel_index.index
+                        if(last_channel_index_investigated==current_channel_index || last_channel_index_investigated==prev_channel_index){
+                            this.investigate_channel_index(null)
+                        }
 
                         let current_channel_config=this.config.imaging_channels[current_channel_index]
                         let prev_channel_config=this.config.imaging_channels[prev_channel_index]
@@ -1502,18 +1516,24 @@
 
                         this.set_channel_config(el1,prev_channel_config)
                         this.set_channel_config(el2,current_channel_config)
+
+                        if(last_channel_index_investigated!=null){
+                            if(last_channel_index_investigated==current_channel_index){
+                                this.investigate_channel_index(prev_channel_index)
+                            }else if(last_channel_index_investigated==prev_channel_index){
+                                this.investigate_channel_index(current_channel_index)
+                            }
+                        }
                     }
                     p.channel_move_up=function(event){
                         let channel_config_item=event.currentTarget.parentNode
                         let channel_config_item_prev=channel_config_item.previousElementSibling
-                        if(channel_config_item_prev){
-                            this.swap_channel_items(channel_config_item,channel_config_item_prev)
-                        }
+                        this.swap_channel_items(channel_config_item,channel_config_item_prev)
                     }
                     p.channel_move_down=function(event){
                         let channel_config_item=event.currentTarget.parentNode
                         let channel_config_item_next=channel_config_item.nextElementSibling
-                        if(channel_config_item_next && channel_config_item_next!=document.querySelector("#channel-config-add-item-button")){
+                        if(channel_config_item_next!=document.querySelector("#channel-config-add-item-button")){
                             this.swap_channel_items(channel_config_item,channel_config_item_next)
                         }
                     }
@@ -1569,12 +1589,44 @@
                         this.set_channel_config(channel_config_item_clone,new_channel_config)
                         channel_config_item_clone.setAttribute("init-from-existing-channel-index",channel_index+1)
                     }
-                    p.investigate_channel=function(event){
-                        event.currentTarget.parentElement.classList.toggle("active")
+                    
+                    p.investigate_channel_index=function(index){
+                        if(channel_index.index==index){
+                            return
+                        }
 
-                        let channel_config=this.config.imaging_channels[event.currentTarget.parentElement.getAttribute("channel-index")]
+                        if(channel_index.index!=null){
+                            let channel_config_item=document.querySelector(`[channel-index="${channel_index.index}"]`)
+                            channel_config_item.classList.remove("active")
+                        }
+
+                        if(index==null){
+                            return
+                        }
+
+                        document.querySelector(`[channel-index="${index}"]`).classList.add("active")
+
+                        channel_index.index=index
+                        let channel_config=this.config.imaging_channels[channel_index.index]
+
+                        let channel_name=document.querySelector(".imaging-channel-config-name")
+                        channel_name.innerText=channel_config.name
+
+                        let lightsource_dropdown_element=document.querySelector(".imaging-channel-config-lightsource")
+                        lightsource_dropdown_element.value=channel_config.lightsource
+                        this.set_lightsource({currentTarget:lightsource_dropdown_element,target:lightsource_dropdown_element})
+
+                        document.querySelector(".imaging-channel-config-exposure-time").value=channel_config.exposure_time
+                        document.querySelector(".imaging-channel-config-light-power").value=channel_config.light_power
+                        document.querySelector(".imaging-channel-config-analog-gain").value=channel_config.analog_gain
+                        document.querySelector(".imaging-channel-config-z-offset").value=channel_config.z_offset
 
                         console.log("investigate channel",channel_config.copyRaw())
+                    }
+                    p.investigate_channel=function(event){
+                        let current_channel_index=event.currentTarget.parentElement.getAttribute("channel-index")
+
+                        this.investigate_channel_index(current_channel_index)
                     }
 
                     p.init_imaging_channels=function(element){
@@ -1613,15 +1665,13 @@
 
                         border-bottom:1px solid lightgray;
                     }
-                    .channel-config-item.active,.channel-config-item.active>button:not(:hover){
-                        --text-color:white;
-                        --border-color:white;
-                        --background-color: black;
-                    }
                     .channel-config-item:not(.active){
-                        --text-color:black;
-                        --border-color:white;
-                        --background-color: rgb(233, 233, 233);
+                        border-left: 0.2em solid transparent;
+                        border-right:0.2em solid transparent;
+                    }
+                    .channel-config-item.active{
+                        border-left: 0.2em solid red;
+                        border-right:0.2em solid red;
                     }
                     .channel-config-item input,.channel-config-item select,.channel-config-item input[type="text"],.channel-config-item button{
                         --border-bottom:var(--text-color);
@@ -1630,13 +1680,16 @@
                     }
                     .channel-config-item{
                         display:grid;
-                        grid-template-columns: auto auto auto auto;
-                        grid-template-rows: repeat(6,min-content);
+                        grid-template-columns: repeat(4,auto);
+                        grid-template-rows: repeat(2,min-content);
 
                         margin-bottom: 0.4em;
 
                         column-gap: 0.4em;
                         row-gap:0.2em;
+
+                        padding-left:0.3em;
+                        padding-right:0.3em;
 
                         color:var(--text-color);
                         background-color: var(--background-color);
@@ -1658,7 +1711,6 @@
                         padding:0.5em;
                         margin:0.2em;
                         margin-top: 0.2em;
-                        border:1px solid black;
                     }
                     .col-4{
                         grid-column: span 4;
@@ -1679,188 +1731,215 @@
                 </style>
                 <div id="imaging-channel-container">
                     <div id="imaging-channel-list-header">imaging channels</div>
+                    <script>
+                        p.init_channel=function(element){
+                            let init_from_existing_channel_index=element.getAttribute("init-from-existing-channel-index")
+
+                            let channel_index=this.config.imaging_channels.length
+
+                            // initialise to some arbitrary default
+                            let channel_config={
+                                lightsource:this.light_sources[0].handle,
+                                exposure_time:10,
+                                light_power:100,
+                                analog_gain:0,
+                                z_offset:0,
+                                name:""
+                            }
+
+                            if(init_from_existing_channel_index!==null){
+                                channel_index=init_from_existing_channel_index
+
+                                let existing_channel_config=this.config.imaging_channels[init_from_existing_channel_index]
+                                channel_config=existing_channel_config
+                            }else{
+                                this.config.imaging_channels.push(channel_config)
+                            }
+
+                            element.setAttribute("channel-index",channel_index)
+
+                            this.set_channel_config(element,channel_config)
+                        }
+                        p.set_channel_config=function(element,channel_config){
+                            let imaging_channel_name_element=element.querySelector(".imaging-channel-name")
+                            imaging_channel_name_element.value=channel_config.name
+                            this.validate_channel_name({currentTarget:imaging_channel_name_element,target:imaging_channel_name_element})
+                        }
+                        p.validate_channel_name=function(event){
+                            /// returns true if valid, false otherwise
+
+                            let element=event.currentTarget || event
+
+                            if(element.value.length==0){
+                                element.classList.add("invalid")
+                                element.setCustomValidity("Channel name must not be empty.")
+                                element.reportValidity()
+                            }else{
+                                element.classList.remove("invalid")
+                                element.setCustomValidity("")
+
+                                return true
+                            }
+
+                            return false
+                        }
+
+                        p.set_channel_name=function(event){
+                            let element=event.currentTarget || event
+
+                            let current_channel_index=element.parentNode.parentNode.getAttribute("channel-index")
+                            let channel_name=element.value
+
+                            if(channel_index.index==current_channel_index){
+                                let channel_name_element=document.querySelector(".imaging-channel-config-name")
+                                channel_name_element.innerText=channel_name
+                            }
+
+                            p.config.imaging_channels[current_channel_index].name=channel_name
+                        }
+                    </script>
+                    <style>
+                        .imaging-channel-name-container{
+                            grid-column: span 4;
+                        }
+                        .channel-config-item button{
+                            text-align: center;
+                        }
+                    </style>
                     <div id="channel-container" class="data" p:init="init_imaging_channels" p:init-vis="load_imaging_channels">
                         <template name="channel_config_item">
                             <div class="channel-config-item data" p:init-vis="init_channel">
-                                <script>
-                                    p.init_channel=function(element){
-                                        let init_from_existing_channel_index=element.getAttribute("init-from-existing-channel-index")
-
-                                        let channel_index=this.config.imaging_channels.length
-
-                                        // initialise to some arbitrary default
-                                        let channel_config={
-                                            lightsource:this.light_sources[0].handle,
-                                            exposure_time:10,
-                                            light_power:100,
-                                            analog_gain:0,
-                                            z_offset:0,
-                                            name:""
-                                        }
-
-                                        if(init_from_existing_channel_index!==null){
-                                            channel_index=init_from_existing_channel_index
-
-                                            let existing_channel_config=this.config.imaging_channels[init_from_existing_channel_index]
-                                            channel_config=existing_channel_config
-                                        }else{
-                                            this.config.imaging_channels.push(channel_config)
-                                        }
-
-                                        element.setAttribute("channel-index",channel_index)
-
-                                        this.set_channel_config(element,channel_config)
-                                    }
-                                    p.set_channel_config=function(element,channel_config){
-                                        let lightsource_dropdown_element=element.querySelector(".imaging-channel-lightsource")
-                                        lightsource_dropdown_element.value=channel_config.lightsource
-                                        this.set_lightsource({currentTarget:lightsource_dropdown_element,target:lightsource_dropdown_element})
-
-                                        element.querySelector(".imaging-channel-exposure-time").value=channel_config.exposure_time
-                                        element.querySelector(".imaging-channel-light-power").value=channel_config.light_power
-                                        element.querySelector(".imaging-channel-analog-gain").value=channel_config.analog_gain
-                                        element.querySelector(".imaging-channel-z-offset").value=channel_config.z_offset
-
-                                        let imaging_channel_name_element=element.querySelector(".imaging-channel-name")
-                                        imaging_channel_name_element.value=channel_config.name
-                                        this.validate_channel_name({currentTarget:imaging_channel_name_element,target:imaging_channel_name_element})
-                                    }
-                                    p.validate_channel_name=function(event){
-                                        /// returns true if valid, false otherwise
-
-                                        let element=event.currentTarget || event
-
-                                        if(element.value.length==0){
-                                            element.classList.add("invalid")
-                                            element.setCustomValidity("Channel name must not be empty.")
-                                            element.reportValidity()
-                                        }else{
-                                            element.classList.remove("invalid")
-                                            element.setCustomValidity("")
-
-                                            return true
-                                        }
-
-                                        return false
-                                    }
-
-                                    p.set_channel_name=function(event){
-                                        let element=event.currentTarget || event
-
-                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                        let channel_name=element.value
-
-                                        p.config.imaging_channels[channel_index].name=channel_name
-                                    }
-                                </script>
-                                <div class="col-3 imaging-channel-name-container">
+                                <div class="imaging-channel-name-container">
                                     <label class="data" p:tooltip="Name of this channel (used for metadata only). This should be the name of dye. Use the name of the organelle only if there is no dye in this channel.">Name:</label>
                                     <input class="imaging-channel-name data" type="text" p:init-vis="validate_channel_name" p:on-input="validate_channel_name,set_channel_name" placeholder="Enter Channel Name"/>
                                 </div>
 
-                                <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Investigate &rarr;</button>
-
-                                <label>Light source:</label>
-                                <select class="imaging-channel-lightsource col-3 data" p:init="init_lightsource_dropdown" p:on-change="set_lightsource"></select>
-                                <script>
-                                    p.init_lightsource_dropdown=function(element){
-                                        this.create_dropdown(element,this.light_sources)
-                                    }
-                                    p.set_lightsource=function(event){
-                                        let element=event.currentTarget || event
-
-                                        let channel_index=element.parentNode.getAttribute("channel-index")
-                                        let lightsource_handle=element.value
-
-                                        let lightsource=p.get_lightsource(lightsource_handle)
-                                        p.config.imaging_channels[channel_index].lightsource=lightsource.handle
-                                    }
-                                </script>
-
-                                <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
-                                <div class="input-unit-container">
-                                    <input class="imaging-channel-exposure-time data" type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false" p:on-change="set_exposure_time"/>
-                                    <p>ms</p>
-                                </div>
-                                <script>
-                                    p.set_exposure_time=function(event){
-                                        let element=event.currentTarget || event
-
-                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                        let exposure_time=element.value
-
-                                        p.config.imaging_channels[channel_index].exposure_time=exposure_time
-                                    }
-                                </script>
-
-                                <label class="data" p:tooltip="Fraction of the maximum power of the light source with which it illuminates the sample. Must be in range [0;100%]">Light Power:</label>
-                                <div class="input-unit-container">
-                                    <input class="imaging-channel-light-power data" type="number" min="0" max="100" step="0.1" wheel-adjust="false" p:on-change="set_light_power"/>
-                                    <p>%</p>
-                                </div>
-                                <script>
-                                    p.set_light_power=function(event){
-                                        let element=event.currentTarget || event
-
-                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                        let light_power=element.value
-
-                                        p.config.imaging_channels[channel_index].light_power=light_power
-                                    }
-                                </script>
-
-                                <label class="data" p:tooltip="Analog gain increases the camera sensor sensitivity. This makes a weaker signal appear stronger, but may increase the level of noise in the image.">Analog Gain:</label>
-                                <input class="imaging-channel-analog-gain data" type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false" p:on-change="set_analog_gain"/>
-                                <script>
-                                    p.set_analog_gain=function(event){
-                                        let element=event.currentTarget || event
-
-                                        let channel_index=element.parentNode.getAttribute("channel-index")
-                                        let analog_gain=element.value
-
-                                        p.config.imaging_channels[channel_index].analog_gain=analog_gain
-                                    }
-                                </script>
-
-                                <label class="data" p:tooltip="The z-offset of the imaging plane of this channel from the focus plane of the current position.">Z-Offset:</label>
-                                <div class="input-unit-container">
-                                    <input class="imaging-channel-z-offset data" type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false" p:on-change="set_z_offset"/>
-                                    <p>um</p>
-                                </div>
-                                <script>
-                                    p.set_z_offset=function(event){
-                                        let element=event.currentTarget || event
-
-                                        let channel_index=element.parentNode.parentNode.getAttribute("channel-index")
-                                        let z_offset=element.value
-
-                                        p.config.imaging_channels[channel_index].z_offset=z_offset
-                                    }
-                                </script>
-
-                                <button class="data" p:tooltip="Move this channel up in the imaging order." p:on-click="channel_move_up">Move Up</button>
-                                <button class="data" p:tooltip="Move this channel down in the imaging order."  p:on-click="channel_move_down">Move Down</button>
-                                <button class="data" p:tooltip="Create a copy of this channel."  p:on-click="duplicate_channel">Duplicate</button>
+                                <button class="data" p:tooltip="Move this channel up in the imaging order." p:on-click="channel_move_up">Move &uarr;</button>
+                                <button class="data" p:tooltip="Move this channel down in the imaging order."  p:on-click="channel_move_down">Move &darr;</button>
                                 <button class="data" p:tooltip="Delete this channel."  p:on-click="remove_channel">Remove</button>
+
+                                <button class="data" p:tooltip="Investigate this channel in the panel on the right." p:on-click="investigate_channel">Configure</button>
                             </div>
                         </template>
                         <button id="channel-config-add-item-button" class="data" p:on-click="add_channel_config_item">Add Channel</button>
                     </div>
                 </div>
 
-                <!-- right side (channel investigation) -->
+                <!-- middle column -->
                 <div>
+                    <!-- channel config -->
+                    <style>
+                        #channel-config-container{
+                            display:grid;
+                            grid-template-columns: auto 1fr;
+                            column-gap: 0.5em;
+                        }
+                    </style>
+                    <div id="channel-config-container">
+                        <h2 style="grid-column: span 2; display:flex;">
+                            <label>Channel:&nbsp;</label>
+                            <p class="imaging-channel-config-name">Nucleus</p>
+                        </h2>
+
+                        <label>Light source:</label>
+                        <select class="imaging-channel-config-lightsource data" p:init="init_lightsource_dropdown" p:on-change="set_lightsource"></select>
+                        <script>
+                            p.init_lightsource_dropdown=function(element){
+                                this.create_dropdown(element,this.light_sources)
+                            }
+                            p.set_lightsource=function(event){
+                                if(channel_index.index==null){
+                                    return
+                                }
+                                let element=event.currentTarget || event
+
+                                let lightsource_handle=element.value
+
+                                let lightsource=p.get_lightsource(lightsource_handle)
+                                p.config.imaging_channels[channel_index.index].lightsource=lightsource.handle
+                            }
+                        </script>
+
+                        <label class="data" p:tooltip="Exposure time in milliseconds. This is the time the sample is excited by light, during which the camera records the light emitted by the sample.">Exposure time:</label>
+                        <div class="input-unit-container">
+                            <input class="imaging-channel-config-exposure-time data" type="number" min="0.1" max="936" step="0.1" value="10" wheel-adjust="false" p:on-change="set_exposure_time"/>
+                            <p>ms</p>
+                        </div>
+                        <script>
+                            p.set_exposure_time=function(event){
+                                if(channel_index.index==null){
+                                    return
+                                }
+                                let element=event.currentTarget || event
+
+                                let exposure_time=element.value
+
+                                p.config.imaging_channels[channel_index.index].exposure_time=exposure_time
+                            }
+                        </script>
+
+                        <label class="data" p:tooltip="Fraction of the maximum power of the light source with which it illuminates the sample. Must be in range [0;100%]">Light Power:</label>
+                        <div class="input-unit-container">
+                            <input class="imaging-channel-config-light-power data" type="number" min="0" max="100" step="0.1" wheel-adjust="false" p:on-change="set_light_power"/>
+                            <p>%</p>
+                        </div>
+                        <script>
+                            p.set_light_power=function(event){
+                                if(channel_index.index==null){
+                                    return
+                                }
+                                let element=event.currentTarget || event
+
+                                let light_power=element.value
+
+                                p.config.imaging_channels[channel_index.index].light_power=light_power
+                            }
+                        </script>
+
+                        <label class="data" p:tooltip="Analog gain increases the camera sensor sensitivity. This makes a weaker signal appear stronger, but may increase the level of noise in the image.">Analog Gain:</label>
+                        <input class="imaging-channel-config-analog-gain data" type="number" min="0" max="24" step="0.1" value="0" wheel-adjust="false" p:on-change="set_analog_gain"/>
+                        <script>
+                            p.set_analog_gain=function(event){
+                                if(channel_index.index==null){
+                                    return
+                                }
+                                let element=event.currentTarget || event
+
+                                let analog_gain=element.value
+
+                                p.config.imaging_channels[channel_index.index].analog_gain=analog_gain
+                            }
+                        </script>
+
+                        <label class="data" p:tooltip="The z-offset of the imaging plane of this channel from the focus plane of the current position.">Z-Offset:</label>
+                        <div class="input-unit-container">
+                            <input class="imaging-channel-config-z-offset data" type="number" min="-300" max="300" step="0.1" value="0" wheel-adjust="false" p:on-change="set_z_offset"/>
+                            <p>um</p>
+                        </div>
+                        <script>
+                            p.set_z_offset=function(event){
+                                if(channel_index.index==null){
+                                    return
+                                }
+
+                                let element=event.currentTarget || event
+
+                                let z_offset=element.value
+
+                                p.config.imaging_channels[channel_index.index].z_offset=z_offset
+                            }
+                        </script>
+                    </div>
+
+                    <!-- objective/plate position -->
                     <style>
                         #objective-position-container{
                             display:grid;
-                            grid-template-columns: repeat(4,auto);
-
-                            column-gap: 1em;
-                            row-gap:0.2em;
+                            grid-template-columns: auto;
                         }
                         .xyz-pos-grid{
                             display:grid;
-                            grid-template-columns: auto auto auto;
+                            grid-template-columns: repeat(9,auto);
                         }
                         .grid-col-3{
                             display:grid;
@@ -1868,238 +1947,33 @@
                         }
                     </style>
                     <div id="objective-position-container">
-                        <h2 style="grid-column: span 4;">Objective/Stage Position:</h2>
-
-                        <div>
-                            <div>current position:</div>
-                            <div class="xyz-pos-grid">
-                                <label>x</label><input type="number" value="34.91" disabled="false"/><p>mm</p>
-                                <label>y</label><input type="number" value="54.34" disabled/><p>mm</p>
-                                <label>z</label><input type="number" value="2345.67"/><p>um</p>
-                            </div>
-                        </div>
-                        
-                        
-                        <div>
-                            <div>go to</div>
-                            <div class="grid-col-3">
-                                <div>well</div><input type="text" value="A8"/><button>browse</button>
-                                <div>position</div><input type="text" value="r3 x c3 : r2 c2"/><button>browse</button>
-                            </div>
-                            <button>execute</button>
-                        </div>
+                        <h2>Objective/Stage Position</h2>
 
                         <div>
                             <button>enter loading position</button>
                             <button>leave loading position</button>
                         </div>
-                    </div>
-                    <div>
-                        <style>
-                            #live-view-section-header{
-                                display:grid;
-                                grid-template-columns: auto 1fr;
-                                column-gap: 1em;
-                            }
-                            #live-view-section-header :nth-child(2){
-                                margin-top:0.2em;
-                            }
-                        </style>
-                        <div id="live-view-section-header">
-                            <h2>Live View</h2>
 
-                            <div>
-                                <label for="live-view-brightness">brightness</label>
-                                <input id="live-view-brightness" class="data" type="number" min="0.1" max="9.9" value="1.0" step="0.1" p:on-change="load_new_image"/>
-
-                                <label>indicate saturated pixels?</label>
-                                <script>
-                                    let img_src=null
-                                    let saturated=false
-                                    let res_flag=null
-
-                                    let _icantbelieveihavetodothis={intervalid:0}
-                                    p.load_new_image=function(_){
-                                        let img_element=document.getElementById("live-view-display")
-
-                                        let brightness_factor=parseFloat(document.getElementById("live-view-brightness").value)
-
-                                        let new_img_src=img_src
-                                        if(saturated){
-                                            new_img_src=new_img_src.replace('.tif','.saturated.tif')
-                                        }
-                                        if(res_flag){
-                                            new_img_src=new_img_src.replace('.tif',res_flag+'.tif')
-                                        }
-                                        if(brightness_factor!=null){
-                                            new_img_src=new_img_src.replace('.tif','.b'+brightness_factor.toFixed(1).replace('.','_')+'.tif')
-                                        }
-                                        img_element.setAttribute("src",new_img_src)
-                                        
-                                        if(_icantbelieveihavetodothis.intervalid){
-                                            clearInterval(_icantbelieveihavetodothis.intervalid)
-                                        }
-
-                                        _icantbelieveihavetodothis.intervalid=setInterval(()=>{
-                                            try{
-                                                p.make_into_histogram(img_element)
-                                            }catch(e){
-                                                return
-                                            }
-
-                                            clearInterval(_icantbelieveihavetodothis.intervalid)
-                                        },50)
-                                    }
-                                    p.make_into_histogram=function(element){
-                                        this.histogram_from_image(this.get_img_data(element.children[0].children[0]))
-                                    }
-
-                                    p.change_saturated_pixel_indicator=function(event){
-                                        saturated=event.currentTarget.checked
-                                        this.load_new_image()
-                                    }
-                                </script>
-                                <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
-
-                                <script>
-                                    p.set_img_src=function(event){
-                                        let element=event.currentTarget||event
-
-                                        img_src=element.value
-
-                                        this.load_new_image()
-                                    }
-                                    p.set_img_scale=function(event){
-                                        let element=event.currentTarget||event
-
-                                        res_flag=element.value
-
-                                        this.load_new_image()
-                                    }
-                                </script>
-                                <select class="data" p:init-vis="set_img_src" p:on-change="set_img_src">
-                                    <option value="cells.tiff">cells.tiff</option>
-                                    <option value="cells2.tiff">cells2.tiff</option>
-                                </select>
-                                <select class="data" p:init-vis="set_img_scale" p:on-change="set_img_scale">
-                                    <option value=".highres">full res</option>
-                                    <option value=".halfres">1/2 res</option>
-                                    <option value=".midres" selected>1/5 res</option>
-                                    <option value=".lowres">1/10 res</option>
-                                </select>
+                        <div>
+                            <div>current position:</div>
+                            <div class="xyz-pos-grid">
+                                <label>x</label><p>34.91</p><p>mm</p>
+                                <label>y</label><p>54.34</p><p>mm</p>
+                                <label>z</label><p>2345.67</p><p>um</p>
                             </div>
                         </div>
-                        <style>
-                            #live-view-container{
-                                display:grid;
-                                grid-template-columns: 2fr 1fr;
-                                grid-gap:1em;
-                            }
-                        </style>
-                        <div id="live-view-container">
-                            <style>
-                                #live-view-display{
-                                    width:100%;
-                                    height:auto;
-                                    border:1px solid black;
-                                }
-                            </style>
-                            <script>
-                                p.onsrcchange=function(element){
-                                    element.children[element.children.length-1].firstElementChild.setAttribute("src",element.getAttribute("src"))
-                                    center_image_on_load(element.children[element.children.length-1].firstElementChild)
-                                }
-                            </script>
-                            <div id="live-view-display" style="background-color:gray;" class="dynamic-image-display notitle data" p:on-attrchange(src)="onsrcchange"></div>
-                            <div>
-                                <script>
-                                    let histogram_was_initialized=false
-                                    let y_axis_log_scale=true
-                                    p.histogram_from_image=function(image){
-                                        // histogram is created on the R (red) channel only
-                                        
-                                        var y_data = []
-                                        var x_data = []
-                                        for(let i=0;i<256;i++){
-                                            y_data.push(0)
-                                            x_data.push(i)
-                                        }
-
-                                        let num_pixels_in_image=image.width*image.height
-                                        let num_image_color_channels=image.data.length/num_pixels_in_image
-
-                                        for(let i=0;i<image.data.length;i+=num_image_color_channels){
-                                            y_data[image.data[i]]++
-                                        }
-
-                                        if(y_data[0]==num_pixels_in_image){
-                                            throw new Error("image is empty, cannot create histogram")
-                                        }
-
-                                        var trace = {
-                                            x: x_data,
-                                            y: y_data,
-                                            fill: 'tozeroy',
-                                            type: 'scatter',
-                                            mode: 'lines'
-                                        }
-                                        var layout = {
-                                            title: 'Histogram',
-                                            xaxis: {
-                                                title: 'Signal intensity',
-                                                tickvals: [  0,    64, 128,    192,255],
-                                                ticktext: ['0','0.25','0.5','0.75','1'],
-                                            },
-                                            yaxis: {
-                                                title: 'Relative count',
-                                                // only provide ticks for 0 (numbers on this axis are largely irrelevant)
-                                                tickvals: [0],
-                                                ticktext: ['0']
-                                            },
-                                            autosize: true,
-                                            // reduce margin size to reduce blank space around plot
-                                            margin: {l: 40, r: 40, b: 40, t: 40}
-                                        }
-
-                                        if(y_axis_log_scale){
-                                            layout.yaxis.type="log"
-                                            layout.yaxis.title+=" (log scale)"
-
-                                            layout.yaxis.tickvals.push(1)
-                                            layout.yaxis.ticktext.push('1')
-                                        }
-
-                                        let config={scrollZoom: true}
-
-                                        Plotly.newPlot('histogram', [trace], layout, config)
-                                        histogram_was_initialized=true
-                                    }
-
-                                    p.plotly_resize=function(element){
-                                        // if plot is not yet present, do nothing
-                                        if(!histogram_was_initialized){
-                                            return
-                                        }
-                                        
-                                        let plotContainer=element
-                                        let update={
-                                            width: plotContainer.clientWidth,
-                                            height: plotContainer.clientHeight
-                                        }
-                                        Plotly.relayout(element, update)
-                                    }
-                                </script>
-                                <div id="histogram" class="data" p:on-resize="plotly_resize">
-                                    <style>
-                                        #histogram{
-                                            width:100%;
-                                            height:400px;
-                                        }
-                                    </style>
-                                </div>
+                        
+                        <div>
+                            <div>go to</div>
+                            <div class="grid-col-3">
+                                <div>well</div><input type="text" value="A8"/>
+                                <div>position</div><input type="text" value="r3 x c3 : r2 c2"/>
                             </div>
+                            <button>execute</button>
                         </div>
                     </div>
+
+                    <!-- focus config -->
                     <div>
                         <h2>Focus (auto & manual)</h2>
                         <button>Set Laser Autofocus Reference</button>
@@ -2108,6 +1982,210 @@
                             <p>offset:</p><p>6.634</p><p>um</p>
                         </div>
                         <div class="data" p:tooltip="focus measure could be a real focus measure, or the max intensity (which actually works great in practice)">graph of software focus measure vs z (?)</div>
+                    </div>
+                </div>
+
+                <!-- right side (channel investigation) -->
+                <div>
+                    <!-- live view header -->
+                    <style>
+                        #live-view-section-header{
+                            display:grid;
+                            grid-template-columns: auto 1fr;
+                            column-gap: 1em;
+                        }
+                        #live-view-section-header :nth-child(2){
+                            margin-top:0.2em;
+                        }
+                    </style>
+                    <div id="live-view-section-header">
+                        <h2>Live View</h2>
+
+                        <div>
+                            <label for="live-view-brightness">brightness</label>
+                            <input id="live-view-brightness" class="data" type="number" min="0.1" max="9.9" value="1.0" step="0.1" p:on-change="load_new_image"/>
+
+                            <label>indicate saturated pixels?</label>
+                            <script>
+                                let img_src=null
+                                let saturated=false
+                                let res_flag=null
+
+                                let _icantbelieveihavetodothis={intervalid:0}
+                                p.load_new_image=function(_){
+                                    let img_element=document.getElementById("live-view-display")
+
+                                    let brightness_factor=parseFloat(document.getElementById("live-view-brightness").value)
+
+                                    let new_img_src=img_src
+                                    if(saturated){
+                                        new_img_src=new_img_src.replace('.tif','.saturated.tif')
+                                    }
+                                    if(res_flag){
+                                        new_img_src=new_img_src.replace('.tif',res_flag+'.tif')
+                                    }
+                                    if(brightness_factor!=null){
+                                        new_img_src=new_img_src.replace('.tif','.b'+brightness_factor.toFixed(1).replace('.','_')+'.tif')
+                                    }
+                                    img_element.setAttribute("src",new_img_src)
+                                    
+                                    if(_icantbelieveihavetodothis.intervalid){
+                                        clearInterval(_icantbelieveihavetodothis.intervalid)
+                                    }
+
+                                    _icantbelieveihavetodothis.intervalid=setInterval(()=>{
+                                        try{
+                                            p.make_into_histogram(img_element)
+                                        }catch(e){
+                                            return
+                                        }
+
+                                        clearInterval(_icantbelieveihavetodothis.intervalid)
+                                    },50)
+                                }
+                                p.make_into_histogram=function(element){
+                                    this.histogram_from_image(this.get_img_data(element.children[0].children[0]))
+                                }
+
+                                p.change_saturated_pixel_indicator=function(event){
+                                    saturated=event.currentTarget.checked
+                                    this.load_new_image()
+                                }
+                            </script>
+                            <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
+
+                            <script>
+                                p.set_img_src=function(event){
+                                    let element=event.currentTarget||event
+
+                                    img_src=element.value
+
+                                    this.load_new_image()
+                                }
+                                p.set_img_scale=function(event){
+                                    let element=event.currentTarget||event
+
+                                    res_flag=element.value
+
+                                    this.load_new_image()
+                                }
+                            </script>
+                            <select class="data" p:init-vis="set_img_src" p:on-change="set_img_src">
+                                <option value="cells.tiff">cells.tiff</option>
+                                <option value="cells2.tiff">cells2.tiff</option>
+                            </select>
+                            <select class="data" p:init-vis="set_img_scale" p:on-change="set_img_scale">
+                                <option value=".highres">full res</option>
+                                <option value=".halfres">1/2 res</option>
+                                <option value=".midres" selected>1/5 res</option>
+                                <option value=".lowres">1/10 res</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- live view image -->
+                    <style>
+                        #live-view-display{
+                            width:100%;
+                            height:70vh;
+                            border:1px solid black;
+                        }
+                    </style>
+                    <script>
+                        p.onsrcchange=function(element){
+                            element.children[element.children.length-1].firstElementChild.setAttribute("src",element.getAttribute("src"))
+                            center_image_on_load(element.children[element.children.length-1].firstElementChild)
+                        }
+                    </script>
+                    <div id="live-view-display" style="background-color:gray;" class="dynamic-image-display notitle data" p:on-attrchange(src)="onsrcchange"></div>
+
+                    <!-- histogram -->
+                    <div>
+                        <script>
+                            let histogram_was_initialized=false
+                            let y_axis_log_scale=true
+                            p.histogram_from_image=function(image){
+                                // histogram is created on the R (red) channel only
+                                
+                                var y_data = []
+                                var x_data = []
+                                for(let i=0;i<256;i++){
+                                    y_data.push(0)
+                                    x_data.push(i)
+                                }
+
+                                let num_pixels_in_image=image.width*image.height
+                                let num_image_color_channels=image.data.length/num_pixels_in_image
+
+                                for(let i=0;i<image.data.length;i+=num_image_color_channels){
+                                    y_data[image.data[i]]++
+                                }
+
+                                if(y_data[0]==num_pixels_in_image){
+                                    throw new Error("image is empty, cannot create histogram")
+                                }
+
+                                var trace = {
+                                    x: x_data,
+                                    y: y_data,
+                                    fill: 'tozeroy',
+                                    type: 'scatter',
+                                    mode: 'lines'
+                                }
+                                var layout = {
+                                    title: 'Histogram',
+                                    xaxis: {
+                                        title: 'Signal intensity',
+                                        tickvals: [  0,    64, 128,    192,255],
+                                        ticktext: ['0','0.25','0.5','0.75','1'],
+                                    },
+                                    yaxis: {
+                                        title: 'Relative count',
+                                        // only provide ticks for 0 (numbers on this axis are largely irrelevant)
+                                        tickvals: [0],
+                                        ticktext: ['0']
+                                    },
+                                    autosize: true,
+                                    // reduce margin size to reduce blank space around plot
+                                    margin: {l: 40, r: 40, b: 40, t: 40}
+                                }
+
+                                if(y_axis_log_scale){
+                                    layout.yaxis.type="log"
+                                    layout.yaxis.title+=" (log)"
+
+                                    layout.yaxis.tickvals.push(1)
+                                    layout.yaxis.ticktext.push('1')
+                                }
+
+                                let config={scrollZoom: true}
+
+                                Plotly.newPlot('histogram', [trace], layout, config)
+                                histogram_was_initialized=true
+                            }
+
+                            p.plotly_resize=function(element){
+                                // if plot is not yet present, do nothing
+                                if(!histogram_was_initialized){
+                                    return
+                                }
+                                
+                                let plotContainer=element
+                                let update={
+                                    width: plotContainer.clientWidth,
+                                    height: plotContainer.clientHeight
+                                }
+                                Plotly.relayout(element, update)
+                            }
+                        </script>
+                        <div id="histogram" class="data" p:on-resize="plotly_resize">
+                            <style>
+                                #histogram{
+                                    width:100%;
+                                    height:20vh;
+                                }
+                            </style>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2325,7 +2403,7 @@
 
                                 /*if(y_axis_log_scale){
                                     layout.yaxis.type="log"
-                                    layout.yaxis.title+=" (log scale)"
+                                    layout.yaxis.title+=" (log)"
 
                                     layout.yaxis.tickvals.push(1)
                                     layout.yaxis.ticktext.push('1')
