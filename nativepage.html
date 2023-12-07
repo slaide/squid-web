@@ -1666,7 +1666,7 @@
                         border-bottom:1px solid lightgray;
                     }
                     .channel-config-item:not(.active){
-                        border-left: 0.2em solid transparent;
+                        border-left: 0.2em solid black;
                         border-right:0.2em solid transparent;
                     }
                     .channel-config-item.active{
@@ -1963,13 +1963,168 @@
                             </div>
                         </div>
                         
-                        <div>
-                            <div>go to</div>
-                            <div class="grid-col-3">
-                                <div>well</div><input type="text" value="A8"/>
-                                <div>position</div><input type="text" value="r3 x c3 : r2 c2"/>
+                        <style>
+                            #grid-navigator-container{
+                                display:grid;
+                                grid-template-columns: auto 1fr auto 1fr;
+                                column-gap: 0.5em;
+                            }
+                        </style>
+                        <div id="grid-navigator-container">
+                            <div class="col-4">go to</div>
+                            <style>
+                                .grid-goto{
+                                    width:100%;
+                                    height:300px;
+                                    position:relative;
+                                    background: lightgray;
+                                }
+                                .background-well{
+                                    border:0.2em solid red;
+                                    z-index:0;
+                                    position:absolute;
+                                }
+                                .well-position{
+                                    background-color: #d3d3d3B0;
+                                    z-index:1;
+                                    position:absolute;
+                                }
+                                .well-position.selected{
+                                    background-color: #add8e6B0;
+                                    z-index:2;
+                                }
+                            </style>
+                            <script>
+                                p.grid_navigator_setup=make_observable({
+                                    num_x:3,
+                                    num_y:3,
+                                    delta_x_um:900,
+                                    delta_y_um:900
+                                })
+                                p.grid_navigator_click=function(event){
+                                    // deselect last selected item
+                                    event.currentTarget.parentElement.querySelectorAll(".selected").forEach(el=>{
+                                        el.classList.remove("selected")
+                                    })
+                                    // make current item selected
+                                    event.currentTarget.classList.toggle("selected")
+                                }
+                                p.init_grid_goto=function(event){
+                                    let element=event.element || event.currentTarget || event
+
+                                    while(element.firstElementChild){
+                                        element.removeChild(element.firstElementChild)
+                                    }
+
+                                    // from physical specs/measurements: 3000px wide FOV takes up 0.9mm real space at 20x magnification
+                                    let um_per_px_img=900/3000
+
+                                    // 900um at 20x magnification
+                                    // other sizes derive from there
+                                    let grid_position_size_um=900
+
+                                    let grid_width_px=element.offsetWidth
+                                    let grid_height_px=element.offsetHeight
+
+                                    // configure viewport width in um
+                                    let viewport_size_um=3500
+
+                                    let um_per_px=viewport_size_um/Math.min(grid_width_px,grid_height_px)
+
+                                    function create_square(size_um,extra_values=null){
+                                        const side_length=size_um/um_per_px
+
+                                        extra_values=JSON.parse(JSON.stringify(extra_values)) || {}
+                                        const default_values={
+                                            classes:[],
+                                            top_um:0,
+                                            left_um:0
+                                        }
+                                        Object.keys(default_values).forEach(key=>{
+                                            if(extra_values[key]==undefined){
+                                                extra_values[key]=default_values[key]
+                                            }
+                                        })
+
+                                        let new_grid_element=document.createElement("div")
+                                        // set grid element size
+                                        new_grid_element._side_length_px=side_length
+                                        new_grid_element.style.setProperty("width",size_um/um_per_px+"px")
+                                        new_grid_element.style.setProperty("height",size_um/um_per_px+"px")
+                                        for(let el_class of extra_values.classes){
+                                            new_grid_element.classList.add(el_class)
+                                        }
+                                        if(extra_values.border){
+                                            new_grid_element.style.border=extra_values.border
+                                        }
+                                        new_grid_element.style.top=extra_values.top_um/um_per_px+grid_height_px/2-side_length/2+"px"
+                                        new_grid_element.style.left=extra_values.left_um/um_per_px+grid_width_px/2-side_length/2+"px"
+                                        new_grid_element.addEventListener("dblclick",p.grid_navigator_click)
+                                        return new_grid_element
+                                    }
+
+                                    for(let x=0;x<this.grid_navigator_setup.num_x;x++){
+                                        for(let y=0;y<this.grid_navigator_setup.num_y;y++){
+                                            element.appendChild(create_square(grid_position_size_um,{
+                                                classes:["well-position"],
+                                                border:"1px solid black",
+                                                top_um:-this.grid_navigator_setup.delta_y_um*(this.grid_navigator_setup.num_y-1)/2+this.grid_navigator_setup.delta_y_um*y,
+                                                left_um:-this.grid_navigator_setup.delta_x_um*(this.grid_navigator_setup.num_x-1)/2+this.grid_navigator_setup.delta_x_um*x
+                                            }))
+                                        }
+                                    }
+
+                                    let background_element=create_square(3300,{classes:["background-well"]})
+
+                                    element.appendChild(background_element)
+                                }
+                                p.init_grid_navigator_delta_x=function(element){
+                                    element.value=this.grid_navigator_setup.delta_x_um
+                                }
+                                p.set_grid_navigator_delta_x=function(event){
+                                    let element=event.currentTarget || event
+
+                                    this.grid_navigator_setup.delta_x_um=element.value*1000
+                                }
+                                p.init_grid_navigator_delta_y=function(element){
+                                    element.value=this.grid_navigator_setup.delta_y_um
+                                }
+                                p.set_grid_navigator_delta_y=function(event){
+                                    let element=event.currentTarget || event
+
+                                    this.grid_navigator_setup.delta_y_um=element.value*1000
+                                }
+                                p.init_grid_navigator_num_x=function(element){
+                                    element.value=this.grid_navigator_setup.num_x
+                                }
+                                p.set_grid_navigator_num_x=function(event){
+                                    let element=event.currentTarget || event
+
+                                    this.grid_navigator_setup.num_x=element.value
+                                }
+                                p.init_grid_navigator_num_y=function(element){
+                                    element.value=this.grid_navigator_setup.num_y
+                                }
+                                p.set_grid_navigator_num_y=function(event){
+                                    let element=event.currentTarget || event
+
+                                    this.grid_navigator_setup.num_y=element.value
+                                }
+                            </script>
+                            <label>delta x</label>
+                            <div class="input-unit-container">
+                                <input type="number" min="0.1" step="0.1" max="3.3" value="0.9" class="data" p:on-change="set_grid_navigator_delta_x" p:init="init_grid_navigator_delta_x">
+                                <p>um</p>
                             </div>
-                            <button>execute</button>
+                            <label>delta y</label>
+                            <div class="input-unit-container">
+                                <input type="number" min="0.1" step="0.1" max="3.3" value="0.9" class="data" p:on-change="set_grid_navigator_delta_y" p:init="init_grid_navigator_delta_y">
+                                <p>um</p>
+                            </div>
+                            <label>num x</label><input type="number" min="1" max="10" value="3" class="data" p:on-change="set_grid_navigator_num_x" p:init="init_grid_navigator_num_x">
+                            <label>num y</label><input type="number" min="1" max="10" value="3" class="data" p:on-change="set_grid_navigator_num_y" p:init="init_grid_navigator_num_y">
+                            <div class="grid-goto data col-4" p:init-vis="init_grid_goto" p:on-objchange(p.grid_navigator_setup)="init_grid_goto">
+                            </div>
                         </div>
                     </div>
 
@@ -1977,11 +2132,20 @@
                     <div>
                         <h2>Focus (auto & manual)</h2>
                         <button>Set Laser Autofocus Reference</button>
-                        <div>
-                            <button>measure offset</button>
+                        <style>
+                            #measure-offset-container{
+                                display:grid;
+                                grid-template-columns: repeat(4,auto);
+                            }
+                            #measure-offset-button{
+                                margin-left:1em;
+                                margin-right:1em;
+                            }
+                        </style>
+                        <div id="measure-offset-container">
+                            <button id="measure-offset-button">measure</button>
                             <p>offset:</p><p>6.634</p><p>um</p>
                         </div>
-                        <div class="data" p:tooltip="focus measure could be a real focus measure, or the max intensity (which actually works great in practice)">graph of software focus measure vs z (?)</div>
                     </div>
                 </div>
 
