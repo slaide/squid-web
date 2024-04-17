@@ -229,14 +229,6 @@ let p={
             }
         });
     }),
-    oberserver_resize:new ResizeObserver((entries) => {
-        for(let entry of entries){
-            let resize_callback_name=entry.target.getAttribute("p:on-resize")
-            let resize_callback=p[resize_callback_name].bind(p)
-
-            resize_callback(entry.target)
-        }
-    }),
     get_img_data(img_element,also_return_canvas=false){
         const canvas = document.createElement('canvas');
         canvas.width=img_element.width
@@ -462,13 +454,11 @@ let p={
                                 p[event_func_name]=p[event_func_name].bind(p)
 
                                 if(event_name=="resize"){
-                                    if(false){
-                                        p.oberserver_resize.observe(element)
-                                    }else{
-                                        window.addEventListener("resize",function(event){
-                                            p[event_func_name](element)
-                                        })
-                                    }
+                                    // resize observer doesnt work as expected (and is quite slow)
+                                    // and resize events are triggered when the element itself is being resized, not the parent
+                                    window.addEventListener("resize",function(event){
+                                        p[event_func_name](element)
+                                    })
                                     continue
                                 }else if(event_name.startsWith("vis-change")){
                                     if(element._p.vis_change_funcs==null){

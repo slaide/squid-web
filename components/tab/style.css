@@ -46,7 +46,6 @@
 .tab-body{
     --padding-top: 0.0em;
     padding-top:var(--padding-top);
-    height: calc(100% - var(--padding-top));
     border-top:1px solid black;
 }
 .tab-body.inactive{

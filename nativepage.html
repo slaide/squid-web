@@ -9,6 +9,7 @@
                 padding:0;
                 font-family:Arial;
                 background-color:inherit;
+                --text-color: black;
             }
             body{
                 --inactive-color:white;
@@ -615,15 +616,14 @@
                 <!-- left side (well selection) -->
                 <style>
                     #well-selection-container{
-                        width:100%;
                         height:100%;
 
                         margin-right:1em;
                         border-right:1px solid black;
+                        grid-template-rows: repeat(2,auto) 1fr;
                     }
 
                     #well-selection-area{
-                        width:100%;
                         height:100%;
                         
                         display:grid;
@@ -639,6 +639,8 @@
                         overflow: hidden;
                     }
                     .well-item{
+                        display:block;
+
                         background-color:white;
                         cursor:pointer;
                         text-align:center;
@@ -723,6 +725,9 @@
                     .well-item.highlight-bottom{
                         --border-size-bottom:var(--border-size);
                     }
+                    #well-selection-pattern-container{
+                        grid-template-columns: auto auto auto;
+                    }
                 </style>
                 <script>
                     p.well_selection_init=make_observable({done:false})
@@ -795,25 +800,22 @@
                             }
                         }
 
-                        // make the children invisible to only get the size of the container, without any potential distortion from the children
-                        for(var child of element.children){
-                            child.style.display="none"
-                        }
+                        const container_width=element.clientWidth
+                        const container_height=element.clientHeight
 
-                        let container_width=element.offsetWidth
-                        let container_height=element.offsetHeight
+                        console.log(container_width,container_height)
 
                         // calculate the size of the wells, so that they fit into the container
-                        let well_width=container_width/well_count_x
-                        let well_height=container_height/well_count_y
+                        const well_width=container_width/well_count_x
+                        const well_height=container_height/well_count_y
 
                         // minus 2 for border (TODO)
-                        let well_size=Math.min(well_width,well_height)-2
+                        const well_size=Math.min(well_width,well_height)-2
 
                         // set size and make children visible again
-                        for(var child of element.children){
-                            let child_row=child.getAttribute("plate-row")
-                            let child_col=child.getAttribute("plate-col")
+                        for(const child of element.children){
+                            const child_row=child.getAttribute("plate-row")
+                            const child_col=child.getAttribute("plate-col")
 
                             if(child_row!=0 && child_col!=0){
                                 if(this.config.well_selection[child_row-1][child_col-1]){
@@ -822,7 +824,6 @@
                             }
 
                             child.style.setProperty("--well-size",well_size+"px")
-                            child.style.display=null
                         }
 
                         p.well_selection_init.done=true
@@ -1025,8 +1026,6 @@
                 <div id="well-selection-container">
                     <h2>Select wells for imaging:</h2>
 
-                    <br/>
-
                     <script>
                         p.get_num_selected_wells=function(){
                             if(!p.well_selection_init.done){
@@ -1069,12 +1068,11 @@
                             }
                         }
                     </script>
-                    <div style="grid-row:2;">
+                    <div id='well-selection-pattern-container'>
                         <label>Select wells in checkerboard pattern:</label>
                         <button class="data" p:on-click="select_every_second_well" selection_offset="0">starting at A1</button>
                         <button class="data" p:on-click="select_every_second_well" selection_offset="1">starting at A2</button>
                     </div>
-                    <br/>
 
                     <div id="well-selection-area" class="data" p:init-vis="init_well_selection" p:on-resize="init_well_selection" p:on-mouseleave="area_leave">
                         <template name="well_item">
@@ -1330,7 +1328,6 @@
 
                                 --item-size:30px;
 
-                                width:100%;
                                 height:20em;
 
                                 grid-template-columns: repeat(var(--num-cols), auto);
@@ -1826,7 +1823,13 @@
                 </div>
 
                 <!-- middle column -->
-                <div>
+                <style>
+                    #channel-investgation-center-panel h2{
+                        padding-top:0.5em;
+                        padding-bottom:0.5em;
+                    }
+                </style>
+                <div id="channel-investgation-center-panel">
                     <!-- channel config -->
                     <style>
                         #channel-config-container{
@@ -1936,6 +1939,7 @@
                         #objective-position-container{
                             display:grid;
                             grid-template-columns: auto;
+                            overflow:visible;
                         }
                         .xyz-pos-grid{
                             display:grid;
@@ -1966,13 +1970,105 @@
                         <style>
                             #grid-navigator-container{
                                 display:grid;
-                                grid-template-columns: auto 1fr auto 1fr;
                                 column-gap: 0.5em;
+                                overflow:visible;
+                            }
+                            #grid-navigator-container > .tab-body{
+                                border:1px solid black;
+                                padding:0.3em;
                             }
                         </style>
-                        <div id="grid-navigator-container">
-                            <div class="col-4">go to</div>
+                        <div id="grid-navigator-container" class="tab-container">
                             <style>
+                                #plate-navigator{
+                                    display:grid;
+                                    grid-template-columns: repeat(var(--num-x), var(--sidelength));
+                                    grid-template-rows: repeat(var(--num-y), var(--sidelength));
+                                }
+                                .plate-navigator-well[grid-column='1'][grid-row='1']{
+                                    border:none;
+                                }
+                                .plate-navigator-well[grid-column='1'],.plate-navigator-well[grid-row='1']{
+                                    cursor:default;
+                                    background: white;
+                                    border:1px solid black;
+                                }
+                                .plate-navigator-well{
+                                    cursor:pointer;
+                                    
+                                    border:1px solid lightgrey;
+                                    width:calc( var(--sidelength) - 2px);
+                                    height:calc( var(--sidelength) - 2px);
+
+                                    text-align: center;
+                                    font-size: calc( var(--sidelength) * 0.7 );
+                                }
+                                .tooltip-info{
+                                    font-size: 0.8em;
+                                    font-style: italic;
+                                    margin-top: 0.3em;
+                                    margin-bottom: 0.5em;
+                                }
+                            </style>
+                            <script>
+                                p.live_navigator=make_observable({})
+                                p.well_navigator_click=function(event){
+                                    p.live_navigator.selected_well=event.currentTarget.getAttribute("well-name")
+                                    const tab_header_element=document.querySelector("div[target-tab-name='Pick Position']")
+                                    tab_header_element.click()
+                                }
+                                p.init_plate_navigator=function(element){
+                                    let num_y=p.config.plate_type.well_count_y
+                                    let num_x=p.config.plate_type.well_count_x
+
+                                    element.style.setProperty("--num-x",num_x)
+                                    element.style.setProperty("--num-y",num_y)
+
+                                    while(element.firstElementChild){
+                                        element.removeChild(element.firstElementChild)
+                                    }
+
+                                    const element_size=element.getBoundingClientRect()
+                                    const element_height=element_size.height
+                                    const element_width=element_size.width
+                                    
+                                    const sidelength=element_width/num_x
+                                    element.style.setProperty("--sidelength",sidelength+"px")
+
+                                    for(let y=0;y<num_y;y++){
+                                        for(let x=0;x<num_x;x++){
+                                            const well=document.createElement("div")
+                                            well.setAttribute("grid-column",x+1)
+                                            well.setAttribute("grid-row",y+1)
+                                            well.classList.add("plate-navigator-well")
+                                            if(y!=0 && x!=0){
+                                                well.setAttribute("well-name",String.fromCharCode('A'.charCodeAt(0)+y-1)+x)
+                                                well.addEventListener("click",p.well_navigator_click)
+                                            }
+                                            element.appendChild(well)
+
+                                            if(y==0 && x!=0){
+                                                well.innerText=x
+                                            }
+                                            if(x==0 && y!=0){
+                                                well.innerText=String.fromCharCode('A'.charCodeAt(0)-1+y)
+                                            }
+                                        }
+                                    }
+                                }
+                            </script>
+                            <div id="plate-navigator-container" class="tab-body" tab-name="Pick Well">
+                                <p class="data tooltip-info" p:tooltip="Click the well that you want to move to. This will NOT immediately move to the target well! The menu will instead prompt you to select the target position within the well, and only move once you have chosen that.">Click Target Well</p>
+                                <div id="plate-navigator" class="data" tab-name="Pick Well" p:init-vis="init_plate_navigator">
+                                </div>
+                            </div>
+
+                            <style>
+                                #plate-well-navigator{
+                                    display:grid;
+                                    grid-template-columns: repeat(4, auto);
+                                    column-gap: 1em;
+                                }
                                 .grid-goto{
                                     width:100%;
                                     height:300px;
@@ -1980,11 +2076,19 @@
                                     background: lightgray;
                                 }
                                 .background-well{
+                                    width:calc( var(--width) - 0.4em );
+                                    height:calc( var(--height) - 0.4em );
+
                                     border:0.2em solid red;
+                                    border-radius: calc( var(--height) / 10 );
                                     z-index:0;
                                     position:absolute;
                                 }
                                 .well-position{
+                                    width:calc( var(--width) - 2px );
+                                    height:calc( var(--height) - 2px );
+
+                                    border:1px solid black;
                                     background-color: #d3d3d3B0;
                                     z-index:1;
                                     position:absolute;
@@ -2009,27 +2113,34 @@
                                     // make current item selected
                                     event.currentTarget.classList.toggle("selected")
                                 }
-                                p.init_grid_goto=function(event){
-                                    let element=event.element || event.currentTarget || event
+                                p.init_grid_goto=function(event,options={}){
+                                    const default_options={
+                                        viewport_size_um:3500,
+                                        well_size_um:3300
+                                    }
+                                    Object.keys(default_options).forEach(key=>{
+                                        if(options[key]==undefined){
+                                            options[key]=default_options[key]
+                                        }
+                                    })
+
+                                    const element=event.element || event.currentTarget || event
 
                                     while(element.firstElementChild){
                                         element.removeChild(element.firstElementChild)
                                     }
 
                                     // from physical specs/measurements: 3000px wide FOV takes up 0.9mm real space at 20x magnification
-                                    let um_per_px_img=900/3000
+                                    const um_per_px_img=900/3000
 
                                     // 900um at 20x magnification
                                     // other sizes derive from there
-                                    let grid_position_size_um=900
+                                    const grid_position_size_um=900
 
-                                    let grid_width_px=element.offsetWidth
-                                    let grid_height_px=element.offsetHeight
+                                    const grid_width_px=element.offsetWidth
+                                    const grid_height_px=element.offsetHeight
 
-                                    // configure viewport width in um
-                                    let viewport_size_um=3500
-
-                                    let um_per_px=viewport_size_um/Math.min(grid_width_px,grid_height_px)
+                                    let um_per_px=options.viewport_size_um/Math.min(grid_width_px,grid_height_px)
 
                                     function create_square(size_um,extra_values=null){
                                         const side_length=size_um/um_per_px
@@ -2049,13 +2160,10 @@
                                         let new_grid_element=document.createElement("div")
                                         // set grid element size
                                         new_grid_element._side_length_px=side_length
-                                        new_grid_element.style.setProperty("width",size_um/um_per_px+"px")
-                                        new_grid_element.style.setProperty("height",size_um/um_per_px+"px")
+                                        new_grid_element.style.setProperty("--width",size_um/um_per_px+"px")
+                                        new_grid_element.style.setProperty("--height",size_um/um_per_px+"px")
                                         for(let el_class of extra_values.classes){
                                             new_grid_element.classList.add(el_class)
-                                        }
-                                        if(extra_values.border){
-                                            new_grid_element.style.border=extra_values.border
                                         }
                                         new_grid_element.style.top=extra_values.top_um/um_per_px+grid_height_px/2-side_length/2+"px"
                                         new_grid_element.style.left=extra_values.left_um/um_per_px+grid_width_px/2-side_length/2+"px"
@@ -2065,21 +2173,23 @@
 
                                     for(let x=0;x<this.grid_navigator_setup.num_x;x++){
                                         for(let y=0;y<this.grid_navigator_setup.num_y;y++){
-                                            element.appendChild(create_square(grid_position_size_um,{
-                                                classes:["well-position"],
-                                                border:"1px solid black",
-                                                top_um:-this.grid_navigator_setup.delta_y_um*(this.grid_navigator_setup.num_y-1)/2+this.grid_navigator_setup.delta_y_um*y,
-                                                left_um:-this.grid_navigator_setup.delta_x_um*(this.grid_navigator_setup.num_x-1)/2+this.grid_navigator_setup.delta_x_um*x
-                                            }))
+                                            element.appendChild(create_square(
+                                                grid_position_size_um,
+                                                {
+                                                    classes:["well-position"],
+                                                    top_um:-this.grid_navigator_setup.delta_y_um*(this.grid_navigator_setup.num_y-1)/2+this.grid_navigator_setup.delta_y_um*y,
+                                                    left_um:-this.grid_navigator_setup.delta_x_um*(this.grid_navigator_setup.num_x-1)/2+this.grid_navigator_setup.delta_x_um*x
+                                                }
+                                            ))
                                         }
                                     }
 
-                                    let background_element=create_square(3300,{classes:["background-well"]})
+                                    let background_element=create_square(options.well_size_um,{classes:["background-well"]})
 
                                     element.appendChild(background_element)
                                 }
                                 p.init_grid_navigator_delta_x=function(element){
-                                    element.value=this.grid_navigator_setup.delta_x_um
+                                    element.value=this.grid_navigator_setup.delta_x_um*1e-3
                                 }
                                 p.set_grid_navigator_delta_x=function(event){
                                     let element=event.currentTarget || event
@@ -2087,7 +2197,7 @@
                                     this.grid_navigator_setup.delta_x_um=element.value*1000
                                 }
                                 p.init_grid_navigator_delta_y=function(element){
-                                    element.value=this.grid_navigator_setup.delta_y_um
+                                    element.value=this.grid_navigator_setup.delta_y_um*1e-3
                                 }
                                 p.set_grid_navigator_delta_y=function(event){
                                     let element=event.currentTarget || event
@@ -2110,20 +2220,36 @@
 
                                     this.grid_navigator_setup.num_y=element.value
                                 }
+                                p.set_well_navigator=function(info){
+                                    let element=info.element
+                                    element.innerText=p.live_navigator.selected_well
+                                }
                             </script>
-                            <label>delta x</label>
-                            <div class="input-unit-container">
-                                <input type="number" min="0.1" step="0.1" max="3.3" value="0.9" class="data" p:on-change="set_grid_navigator_delta_x" p:init="init_grid_navigator_delta_x">
-                                <p>um</p>
-                            </div>
-                            <label>delta y</label>
-                            <div class="input-unit-container">
-                                <input type="number" min="0.1" step="0.1" max="3.3" value="0.9" class="data" p:on-change="set_grid_navigator_delta_y" p:init="init_grid_navigator_delta_y">
-                                <p>um</p>
-                            </div>
-                            <label>num x</label><input type="number" min="1" max="10" value="3" class="data" p:on-change="set_grid_navigator_num_x" p:init="init_grid_navigator_num_x">
-                            <label>num y</label><input type="number" min="1" max="10" value="3" class="data" p:on-change="set_grid_navigator_num_y" p:init="init_grid_navigator_num_y">
-                            <div class="grid-goto data col-4" p:init-vis="init_grid_goto" p:on-objchange(p.grid_navigator_setup)="init_grid_goto">
+                            <div id="plate-well-navigator-container" class="tab-body" tab-name="Pick Position">
+                                <div id="plate-well-navigator">
+                                    <div class="col-4" style="display:flex;">
+                                        <p>Target Well:&nbsp;</p>
+                                        <p class="data" p:on-objchange(p.live_navigator)="set_well_navigator">A23</p>
+                                    </div>
+
+                                    <label>delta x</label>
+                                    <div class="input-unit-container">
+                                        <input type="number" min="0.1" step="0.1" max="3.3" value="0.9" class="data" p:on-change="set_grid_navigator_delta_x" p:init="init_grid_navigator_delta_x">
+                                        <p>um</p>
+                                    </div>
+                                    <label>delta y</label>
+                                    <div class="input-unit-container">
+                                        <input type="number" min="0.1" step="0.1" max="3.3" value="0.9" class="data" p:on-change="set_grid_navigator_delta_y" p:init="init_grid_navigator_delta_y">
+                                        <p>um</p>
+                                    </div>
+                                    <label>num x</label><input type="number" min="1" max="10" value="3" class="data" p:on-change="set_grid_navigator_num_x" p:init="init_grid_navigator_num_x">
+                                    <label>num y</label><input type="number" min="1" max="10" value="3" class="data" p:on-change="set_grid_navigator_num_y" p:init="init_grid_navigator_num_y">
+
+                                    <p class="data tooltip-info col-4" p:tooltip="Double click the target position within the well that you want to move to. The physical well is shown with the red outline and rounded corners, approximating the physical shape of the well. The size of the target positions is proportional to the size of the illuminated area (image size may differ slightly).">Double Click Target Position to move</p>
+
+                                    <div class="grid-goto data col-4" p:init-vis="init_grid_goto" p:on-objchange(p.grid_navigator_setup)="init_grid_goto">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2155,96 +2281,95 @@
                     <style>
                         #live-view-section-header{
                             display:grid;
-                            grid-template-columns: auto 1fr;
+                            grid-template-columns: repeat(7,auto);
                             column-gap: 1em;
+                            margin-bottom:0.3em;
                         }
-                        #live-view-section-header :nth-child(2){
-                            margin-top:0.2em;
+                        #live-view-section-header *{
+                            align-self:end;
                         }
                     </style>
                     <div id="live-view-section-header">
                         <h2>Live View</h2>
 
-                        <div>
-                            <label for="live-view-brightness">brightness</label>
-                            <input id="live-view-brightness" class="data" type="number" min="0.1" max="9.9" value="1.0" step="0.1" p:on-change="load_new_image"/>
+                        <label for="live-view-brightness">brightness</label>
+                        <input id="live-view-brightness" class="data" type="number" min="0.1" max="9.9" value="1.0" step="0.1" p:on-change="load_new_image"/>
 
-                            <label>indicate saturated pixels?</label>
-                            <script>
-                                let img_src=null
-                                let saturated=false
-                                let res_flag=null
+                        <label>indicate saturated pixels?</label>
+                        <script>
+                            let img_src=null
+                            let saturated=false
+                            let res_flag=null
 
-                                let _icantbelieveihavetodothis={intervalid:0}
-                                p.load_new_image=function(_){
-                                    let img_element=document.getElementById("live-view-display")
+                            let _icantbelieveihavetodothis={intervalid:0}
+                            p.load_new_image=function(_){
+                                let img_element=document.getElementById("live-view-display")
 
-                                    let brightness_factor=parseFloat(document.getElementById("live-view-brightness").value)
+                                let brightness_factor=parseFloat(document.getElementById("live-view-brightness").value)
 
-                                    let new_img_src=img_src
-                                    if(saturated){
-                                        new_img_src=new_img_src.replace('.tif','.saturated.tif')
+                                let new_img_src=img_src
+                                if(saturated){
+                                    new_img_src=new_img_src.replace('.tif','.saturated.tif')
+                                }
+                                if(res_flag){
+                                    new_img_src=new_img_src.replace('.tif',res_flag+'.tif')
+                                }
+                                if(brightness_factor!=null){
+                                    new_img_src=new_img_src.replace('.tif','.b'+brightness_factor.toFixed(1).replace('.','_')+'.tif')
+                                }
+                                img_element.setAttribute("src",new_img_src)
+                                
+                                if(_icantbelieveihavetodothis.intervalid){
+                                    clearInterval(_icantbelieveihavetodothis.intervalid)
+                                }
+
+                                _icantbelieveihavetodothis.intervalid=setInterval(()=>{
+                                    try{
+                                        p.make_into_histogram(img_element)
+                                    }catch(e){
+                                        return
                                     }
-                                    if(res_flag){
-                                        new_img_src=new_img_src.replace('.tif',res_flag+'.tif')
-                                    }
-                                    if(brightness_factor!=null){
-                                        new_img_src=new_img_src.replace('.tif','.b'+brightness_factor.toFixed(1).replace('.','_')+'.tif')
-                                    }
-                                    img_element.setAttribute("src",new_img_src)
-                                    
-                                    if(_icantbelieveihavetodothis.intervalid){
-                                        clearInterval(_icantbelieveihavetodothis.intervalid)
-                                    }
 
-                                    _icantbelieveihavetodothis.intervalid=setInterval(()=>{
-                                        try{
-                                            p.make_into_histogram(img_element)
-                                        }catch(e){
-                                            return
-                                        }
+                                    clearInterval(_icantbelieveihavetodothis.intervalid)
+                                },50)
+                            }
+                            p.make_into_histogram=function(element){
+                                this.histogram_from_image(this.get_img_data(element.children[0].children[0]))
+                            }
 
-                                        clearInterval(_icantbelieveihavetodothis.intervalid)
-                                    },50)
-                                }
-                                p.make_into_histogram=function(element){
-                                    this.histogram_from_image(this.get_img_data(element.children[0].children[0]))
-                                }
+                            p.change_saturated_pixel_indicator=function(event){
+                                saturated=event.currentTarget.checked
+                                this.load_new_image()
+                            }
+                        </script>
+                        <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
 
-                                p.change_saturated_pixel_indicator=function(event){
-                                    saturated=event.currentTarget.checked
-                                    this.load_new_image()
-                                }
-                            </script>
-                            <input type="checkbox" class="data" p:on-change="change_saturated_pixel_indicator"/>
+                        <script>
+                            p.set_img_src=function(event){
+                                let element=event.currentTarget||event
 
-                            <script>
-                                p.set_img_src=function(event){
-                                    let element=event.currentTarget||event
+                                img_src=element.value
 
-                                    img_src=element.value
+                                this.load_new_image()
+                            }
+                            p.set_img_scale=function(event){
+                                let element=event.currentTarget||event
 
-                                    this.load_new_image()
-                                }
-                                p.set_img_scale=function(event){
-                                    let element=event.currentTarget||event
+                                res_flag=element.value
 
-                                    res_flag=element.value
-
-                                    this.load_new_image()
-                                }
-                            </script>
-                            <select class="data" p:init-vis="set_img_src" p:on-change="set_img_src">
-                                <option value="cells.tiff">cells.tiff</option>
-                                <option value="cells2.tiff">cells2.tiff</option>
-                            </select>
-                            <select class="data" p:init-vis="set_img_scale" p:on-change="set_img_scale">
-                                <option value=".highres">full res</option>
-                                <option value=".halfres">1/2 res</option>
-                                <option value=".midres" selected>1/5 res</option>
-                                <option value=".lowres">1/10 res</option>
-                            </select>
-                        </div>
+                                this.load_new_image()
+                            }
+                        </script>
+                        <select class="data" p:init-vis="set_img_src" p:on-change="set_img_src">
+                            <option value="cells.tiff">cells.tiff</option>
+                            <option value="cells2.tiff">cells2.tiff</option>
+                        </select>
+                        <select class="data" p:init-vis="set_img_scale" p:on-change="set_img_scale">
+                            <option value=".highres">full res</option>
+                            <option value=".halfres">1/2 res</option>
+                            <option value=".midres" selected>1/5 res</option>
+                            <option value=".lowres">1/10 res</option>
+                        </select>
                     </div>
                     
                     <!-- live view image -->
@@ -2345,7 +2470,10 @@
                         <div id="histogram" class="data" p:on-resize="plotly_resize">
                             <style>
                                 #histogram{
-                                    width:100%;
+                                    position:relative;
+                                    --width:65%;
+                                    left:calc( ( 100% - var(--width) ) / 2 );
+                                    width:var(--width);
                                     height:20vh;
                                 }
                             </style>
@@ -2358,7 +2486,7 @@
                 #tab-config-summary .config-accepted::before {
                     display:inline-block;
                     content: "\2713 "; /* Unicode for checkmark */
-                    color: green; /* Color for checkmark */
+                    color: green;
                     padding-left:0.5em;
                     padding-right:0.5em;
                 }
@@ -2366,7 +2494,7 @@
                 #tab-config-summary .config-rejected::before,#tab-config-summary>ul>:not(.config-accepted)::before {
                     display:inline-block;
                     content: "\2717 "; /* Unicode for cross */
-                    color: red; /* Color for cross */
+                    color: red;
                     padding-left:0.5em;
                     padding-right:0.5em;
                 }
